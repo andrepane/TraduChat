@@ -4,9 +4,11 @@ import {
   ref,
   push,
   onChildAdded,
+  onValue,
+  onDisconnect,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// 🔐 Rellena con tus datos reales
+// 🔐 Tus credenciales
 const firebaseConfig = {
   apiKey: "AIzaSyDcQfDtysQmIBSW75_KWy5qyXLKQ6X41LU",
   authDomain: "traduchat-47658.firebaseapp.com",
@@ -38,9 +40,10 @@ let userLang = null;
 let targetLang = null;
 let roomRef = null;
 let lastSender = null;
+let userId = null;
+let previousUsers = [];
 
-// ENTRAR A LA SALA
-joinBtn.addEventListener("click", () => {
+joinBtn.addEventListener("click", async () => {
   const roomCode = roomInput.value.trim();
   userName = usernameInput.value.trim();
   userLang = langSelect.value;
@@ -58,6 +61,38 @@ joinBtn.addEventListener("click", () => {
   onChildAdded(roomRef, (snapshot) => {
     const message = snapshot.val();
     renderMessage(message);
+  });
+
+  // Presencia
+  userId = `${userName}-${Math.random().toString(36).slice(2, 6)}`;
+  const presenceRef = ref(db, `presence/${roomCode}/${userId}`);
+  await push(presenceRef, { name: userName });
+  onDisconnect(presenceRef).remove();
+
+  const presenceRoomRef = ref(db, `presence/${roomCode}`);
+  onValue(presenceRoomRef, (snapshot) => {
+    const currentUsers = [];
+
+    snapshot.forEach((child) => {
+      const val = Object.values(child.val())[0];
+      if (val?.name) currentUsers.push(val.name);
+    });
+
+    // Detectar nuevos conectados
+    currentUsers.forEach((name) => {
+      if (!previousUsers.includes(name) && name !== userName) {
+        showSystemMessage(`${name} se ha conectado`);
+      }
+    });
+
+    // Detectar desconectados
+    previousUsers.forEach((name) => {
+      if (!currentUsers.includes(name) && name !== userName) {
+        showSystemMessage(`${name} se ha desconectado`);
+      }
+    });
+
+    previousUsers = currentUsers;
   });
 });
 
@@ -85,7 +120,6 @@ function renderMessage({ from, originalText, translatedText, timestamp }) {
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
 
-  // Agrupar si es el mismo remitente que el anterior
   if (lastSender !== from) {
     const meta = document.createElement("div");
     meta.className = `message-group ${side}`;
@@ -102,7 +136,6 @@ function renderMessage({ from, originalText, translatedText, timestamp }) {
   messageBubble.className = "message-bubble";
   messageBubble.textContent = translatedText;
 
-  // Insertar en el último grupo del mismo lado
   const groups = chatWindow.querySelectorAll(`.message-group.${side}`);
   const lastGroup = groups[groups.length - 1];
   lastGroup.appendChild(messageBubble);
@@ -111,12 +144,20 @@ function renderMessage({ from, originalText, translatedText, timestamp }) {
   lastSender = from;
 }
 
+// MENSAJE DEL SISTEMA
+function showSystemMessage(text) {
+  const systemMsg = document.createElement("div");
+  systemMsg.className = "system-message";
+  systemMsg.textContent = text;
+  chatWindow.appendChild(systemMsg);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
 function formatTime(timestamp) {
   const date = new Date(timestamp);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// TRADUCCIÓN
 async function translateText(text, targetLang) {
   const encodedText = encodeURIComponent(text);
   const url = `https://magicloops.dev/api/loop/1f32ffbd-1eb5-4e1c-ab57-f0a322e5a1c3/run?text=${encodedText}&targetLanguage=${targetLang}`;
@@ -131,3 +172,20 @@ async function translateText(text, targetLang) {
     return "[Error de traducción]";
   }
 }
+
+const h1 = document.getElementById("titulo-wave");
+const text = h1.textContent;
+h1.textContent = ""; // Limpia el contenido
+
+// Crea un span para cada letra
+[...text].forEach((char, i) => {
+  const span = document.createElement("span");
+  span.textContent = char;
+  span.style.display = "inline-block";
+  span.style.animation = "wave 1.5s ease-in-out infinite";
+  // dentro del script de animación
+  span.style.color = i % 2 === 0 ? "#00b451" : "#00401a";
+
+  span.style.animationDelay = `${i * 0.1}s`;
+  h1.appendChild(span);
+});
