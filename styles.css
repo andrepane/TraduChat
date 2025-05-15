@@ -3,10 +3,12 @@
 }
 
 body {
-  font-family: system-ui, sans-serif;
+  font-family: Poppins, system-ui, sans-serif;
   margin: 0;
   padding: 0;
-  background: #eef1f4;
+  background-color: #444;
+  background-image: radial-gradient(#555 1px, transparent 0);
+  background-size: 20px 20px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -31,7 +33,23 @@ main {
 h1 {
   text-align: center;
   margin-bottom: 1.5rem;
-  font-size: 1.6rem;
+  font-size: 2rem;
+  letter-spacing: 0.3rem;
+}
+
+@keyframes wave {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.4);
+  }
+  60% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 label {
@@ -54,14 +72,14 @@ button {
 }
 
 button {
-  background-color: #007bff;
-  color: white;
+  background-color: #00b451;
+  color: rgb(0, 62, 11);
   font-weight: bold;
   cursor: pointer;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #00e217;
 }
 
 #chat-window {
@@ -177,6 +195,7 @@ button:hover {
   word-break: break-word;
   font-size: 1rem;
   line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
 .message-group.right .message-bubble {
@@ -187,4 +206,29 @@ button:hover {
 .message-group.left .message-bubble {
   background-color: #f8d7da;
   border-bottom-left-radius: 0;
+}
+
+.user-list {
+  font-size: 0.85rem;
+  color: #444;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.system-message {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #888;
+  margin: 0.3rem 0;
+}
+.message-group.right {
+  align-self: flex-end;
+}
+
+.message-group.left {
+  align-self: flex-start;
+}
+
+.system-message::before {
+  content: "🔔 ";
 }
