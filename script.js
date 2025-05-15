@@ -6,6 +6,8 @@ import {
   onChildAdded,
   onValue,
   onDisconnect,
+  set,
+  remove,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // 🔐 Tus credenciales
@@ -34,6 +36,10 @@ const chatSection = document.getElementById("chat-section");
 const chatWindow = document.getElementById("chat-window");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
+const clearBtn = document.getElementById("clear-chat");
+const leaveBtn = document.getElementById("leave-chat"); // 👈 nuevo
+
+const adminName = "Andrea";
 
 let userName = null;
 let userLang = null;
@@ -58,6 +64,10 @@ joinBtn.addEventListener("click", async () => {
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
 
+  if (userName === adminName) {
+    clearBtn.style.display = "inline-block";
+  }
+
   onChildAdded(roomRef, (snapshot) => {
     const message = snapshot.val();
     renderMessage(message);
@@ -78,14 +88,12 @@ joinBtn.addEventListener("click", async () => {
       if (val?.name) currentUsers.push(val.name);
     });
 
-    // Detectar nuevos conectados
     currentUsers.forEach((name) => {
       if (!previousUsers.includes(name) && name !== userName) {
         showSystemMessage(`${name} se ha conectado`);
       }
     });
 
-    // Detectar desconectados
     previousUsers.forEach((name) => {
       if (!currentUsers.includes(name) && name !== userName) {
         showSystemMessage(`${name} se ha desconectado`);
@@ -115,7 +123,37 @@ chatForm.addEventListener("submit", async (e) => {
   chatInput.value = "";
 });
 
-// MOSTRAR MENSAJE AGRUPADO
+// BOTÓN BORRAR CHAT (solo admin)
+clearBtn.addEventListener("click", () => {
+  if (!roomRef) return;
+  const confirmDelete = confirm("¿Seguro que quieres borrar todo el chat?");
+  if (!confirmDelete) return;
+
+  set(roomRef, null);
+  chatWindow.innerHTML = "";
+  showSystemMessage(`💥 ${userName} ha borrado el chat`);
+});
+
+// BOTÓN SALIR DEL CHAT (para todos)
+leaveBtn.addEventListener("click", async () => {
+  const roomCode = roomInput.value.trim();
+  if (roomCode && userId) {
+    const presenceRef = ref(db, `presence/${roomCode}/${userId}`);
+    await remove(presenceRef);
+  }
+
+  chatWindow.innerHTML = "";
+  chatInput.value = "";
+  setupSection.classList.remove("hidden");
+  chatSection.classList.add("hidden");
+  clearBtn.style.display = "none";
+  userName = null;
+  userId = null;
+  roomRef = null;
+  previousUsers = [];
+});
+
+// MENSAJE AGRUPADO
 function renderMessage({ from, originalText, translatedText, timestamp }) {
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
@@ -173,19 +211,17 @@ async function translateText(text, targetLang) {
   }
 }
 
+// ANIMACIÓN TÍTULO
 const h1 = document.getElementById("titulo-wave");
 const text = h1.textContent;
-h1.textContent = ""; // Limpia el contenido
+h1.textContent = "";
 
-// Crea un span para cada letra
 [...text].forEach((char, i) => {
   const span = document.createElement("span");
   span.textContent = char;
   span.style.display = "inline-block";
   span.style.animation = "wave 1.5s ease-in-out infinite";
-  // dentro del script de animación
   span.style.color = i % 2 === 0 ? "#00b451" : "#00401a";
-
   span.style.animationDelay = `${i * 0.1}s`;
   h1.appendChild(span);
 });
