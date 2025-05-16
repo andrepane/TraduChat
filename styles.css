@@ -280,3 +280,14 @@ button:hover {
   }
 }
 
+.mensaje-global {
+  background-color: #ffeaa7;
+  color: #2d3436;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: bold;
+  margin: 0.5rem 0;
+  text-align: center;
+  border: 1px solid #fdcb6e;
+}
+
