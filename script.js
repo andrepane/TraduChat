@@ -27,8 +27,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const typingRef = ref(db, "typing"); // para todos los estados de escritura
+const typingRef = ref(db, "typing");
 const typingTimeouts = {};
+let translateOwnLang = false;
 
 // ELEMENTOS
 const usernameInput = document.getElementById("username");
@@ -69,6 +70,8 @@ joinBtn.addEventListener("click", async () => {
   userName = usernameInput.value.trim();
   userLang = langSelect.value;
   targetLang = userLang === "es" ? "it" : "es";
+
+  translateOwnLang = document.getElementById("translate-own-lang").checked;
 
   if (!roomCode || !userLang || !userName) {
     alert("Por favor, rellena todos los campos.");
@@ -139,6 +142,7 @@ chatForm.addEventListener("submit", async (e) => {
     originalText: text,
     translatedText,
     timestamp,
+    lang: userLang
   });
   resetInput();
 });
@@ -178,27 +182,22 @@ micBtn.addEventListener("click", () => {
     alert("Debes entrar en una sala antes de usar el micrófono.");
     return;
   }
-
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
     alert("Tu navegador no soporta reconocimiento de voz.");
     return;
   }
-
   if (isRecording && recognition) {
     recognition.stop();
     return;
   }
-
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
   recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
-
   finalTranscript = "";
   isRecording = true;
   micBtn.textContent = "🛑 Detener";
-
   recognition.onresult = (event) => {
     let interimTranscript = "";
     for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -208,29 +207,25 @@ micBtn.addEventListener("click", () => {
     }
     chatInput.value = finalTranscript + interimTranscript;
   };
-
   recognition.onerror = (e) => {
     console.error("Error de voz:", e.error);
     isRecording = false;
     micBtn.textContent = "🎤";
   };
-
   recognition.onnomatch = () => {
     console.warn("No se reconoció la voz.");
     isRecording = false;
     micBtn.textContent = "🎤";
   };
-
   recognition.onend = () => {
     isRecording = false;
     micBtn.textContent = "🎤";
     chatInput.value = finalTranscript || chatInput.value;
   };
-
   recognition.start();
 });
 
-function renderMessage({ from, originalText, translatedText, timestamp }) {
+function renderMessage({ from, originalText, translatedText, timestamp, lang }) {
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
   if (lastSender !== from) {
@@ -244,7 +239,12 @@ function renderMessage({ from, originalText, translatedText, timestamp }) {
   }
   const messageBubble = document.createElement("div");
   messageBubble.className = "message-bubble";
-  messageBubble.textContent = translatedText;
+  const isSameLang = lang === userLang;
+  if (isSameLang && !translateOwnLang) {
+    messageBubble.textContent = originalText;
+  } else {
+    messageBubble.textContent = translatedText;
+  }
   const groups = chatWindow.querySelectorAll(`.message-group.${side}`);
   const lastGroup = groups[groups.length - 1];
   lastGroup.appendChild(messageBubble);
