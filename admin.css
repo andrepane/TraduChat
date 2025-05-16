@@ -22,14 +22,30 @@ h1 {
 
 .sala-card h2 {
   margin: 0 0 1rem 0;
+  font-size: 1.2rem;
 }
 
 .sala-card button {
-  padding: 0.8rem 1.2rem;
-  font-size: 1rem;
+  margin-right: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
   background-color: #00b451;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.sala-card button:hover {
+  background-color: #00c15a;
+}
+
+.sala-card .danger {
+  background-color: red;
+}
+
+.sala-card .danger:hover {
+  background-color: darkred;
 }
