@@ -29,7 +29,6 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const contenedor = document.getElementById("sala-lista");
 
-// 🔁 Mostrar salas
 function extraerNombreSala(salaId) {
   return salaId.split("__")[0];
 }
@@ -77,7 +76,7 @@ function crearTarjeta(salaId) {
       lang: idioma,
       isAdmin: true
     }));
-    window.open("index.html", "_blank");
+    location.href = "index.html";
   });
   div.appendChild(btnEntrar);
 
@@ -106,7 +105,6 @@ function crearTarjeta(salaId) {
   contenedor.appendChild(div);
 }
 
-// 📦 Cargar salas y también rellenar el select para el mensaje global
 const selectGlobal = document.createElement("select");
 selectGlobal.id = "select-destino";
 selectGlobal.style.marginTop = "2rem";
@@ -130,7 +128,6 @@ document.body.appendChild(selectGlobal);
 document.body.appendChild(textareaGlobal);
 document.body.appendChild(botonGlobal);
 
-// Rellenar el select con las salas
 onValue(ref(db, "rooms"), (snapshot) => {
   contenedor.innerHTML = "";
   selectGlobal.innerHTML = "";
@@ -148,7 +145,6 @@ onValue(ref(db, "rooms"), (snapshot) => {
 
   Object.keys(data).forEach((salaId) => {
     crearTarjeta(salaId);
-
     const option = document.createElement("option");
     option.value = salaId;
     option.textContent = salaId;
@@ -156,7 +152,6 @@ onValue(ref(db, "rooms"), (snapshot) => {
   });
 });
 
-// ✉️ Enviar mensaje global
 botonGlobal.addEventListener("click", async () => {
   const mensajeTexto = textareaGlobal.value.trim();
   const destino = selectGlobal.value;
