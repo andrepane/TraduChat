@@ -157,6 +157,7 @@ leaveBtn.addEventListener("click", async () => {
 // MICRÓFONO — VOZ A TEXTO Y TRADUCCIÓN
 let recognition = null;
 let isRecording = false;
+let finalTranscript = "";
 
 micBtn.addEventListener("click", () => {
   if (!userLang || !roomRef) {
@@ -169,14 +170,16 @@ micBtn.addEventListener("click", () => {
     return;
   }
 
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
   if (!recognition) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
+      finalTranscript = "";
       isRecording = true;
       micBtn.textContent = "🛑 Detener";
     };
@@ -187,27 +190,28 @@ micBtn.addEventListener("click", () => {
       micBtn.textContent = "🎤";
     };
 
-    recognition.onnomatch = () => {
-      console.warn("No se reconoció la voz.");
-      isRecording = false;
-      micBtn.textContent = "🎤";
+    recognition.onresult = (event) => {
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      chatInput.value = finalTranscript + interimTranscript;
     };
 
     recognition.onend = () => {
       isRecording = false;
       micBtn.textContent = "🎤";
-    };
-
-    recognition.onresult = (event) => {
-      const spokenText = event.results[0][0].transcript;
-      chatInput.value = spokenText;
+      chatInput.value = finalTranscript || chatInput.value;
     };
   }
 
   if (isRecording) {
-    recognition.stop();
-    isRecording = false;
-    micBtn.textContent = "🎤";
+    recognition.stop(); // 🔴 Detiene inmediatamente sin esperar silencio
   } else {
     recognition.start();
   }
