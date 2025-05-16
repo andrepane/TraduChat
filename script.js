@@ -178,7 +178,7 @@ micBtn.addEventListener("click", () => {
 
     recognition.onstart = () => {
       isRecording = true;
-      micBtn.textContent = "🎙️ Grabando...";
+      micBtn.textContent = "🛑 Detener";
     };
 
     recognition.onerror = (e) => {
@@ -198,23 +198,9 @@ micBtn.addEventListener("click", () => {
       micBtn.textContent = "🎤";
     };
 
-    recognition.onresult = async (event) => {
+    recognition.onresult = (event) => {
       const spokenText = event.results[0][0].transcript;
       chatInput.value = spokenText;
-
-      if (!roomRef) return;
-
-      const translatedText = await translateText(spokenText, targetLang);
-      const timestamp = Date.now();
-
-      push(roomRef, {
-        from: userName,
-        originalText: spokenText,
-        translatedText,
-        timestamp,
-      });
-
-      resetInput();
     };
   }
 
@@ -226,6 +212,7 @@ micBtn.addEventListener("click", () => {
     recognition.start();
   }
 });
+
 
 
 // AGRUPAR MENSAJES
