@@ -326,13 +326,15 @@ document.getElementById("admin-access").addEventListener("click", async () => {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const inputHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 
+  const adminHash = "62e081a1ce819dfdbb7d46d0beb86f1d8c20f1df846b3a2879cd78bfba2479fa";
   if (inputHash === adminHash) {
     sessionStorage.setItem("isAdmin", "true");
-    window.open("admin.html", "_blank", "noopener,noreferrer");
+    location.href = "admin.html";
   } else {
     alert("Código incorrecto");
   }
 });
+
 
 const autolog = sessionStorage.getItem("admin-autologin");
 if (autolog) {
