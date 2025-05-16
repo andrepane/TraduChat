@@ -155,55 +155,78 @@ leaveBtn.addEventListener("click", async () => {
 });
 
 // MICRÓFONO — VOZ A TEXTO Y TRADUCCIÓN
+let recognition = null;
+let isRecording = false;
+
 micBtn.addEventListener("click", () => {
   if (!userLang || !roomRef) {
     alert("Debes entrar en una sala antes de usar el micrófono.");
     return;
   }
 
-  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-  recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert("Tu navegador no soporta reconocimiento de voz.");
+    return;
+  }
 
-  recognition.onstart = () => {
-    micBtn.textContent = "🎙️ Grabando...";
-  };
+  if (!recognition) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-  recognition.onerror = (e) => {
-    console.error("Error de voz:", e.error);
+    recognition.onstart = () => {
+      isRecording = true;
+      micBtn.textContent = "🎙️ Grabando...";
+    };
+
+    recognition.onerror = (e) => {
+      console.error("Error de voz:", e.error);
+      isRecording = false;
+      micBtn.textContent = "🎤";
+    };
+
+    recognition.onnomatch = () => {
+      console.warn("No se reconoció la voz.");
+      isRecording = false;
+      micBtn.textContent = "🎤";
+    };
+
+    recognition.onend = () => {
+      isRecording = false;
+      micBtn.textContent = "🎤";
+    };
+
+    recognition.onresult = async (event) => {
+      const spokenText = event.results[0][0].transcript;
+      chatInput.value = spokenText;
+
+      if (!roomRef) return;
+
+      const translatedText = await translateText(spokenText, targetLang);
+      const timestamp = Date.now();
+
+      push(roomRef, {
+        from: userName,
+        originalText: spokenText,
+        translatedText,
+        timestamp,
+      });
+
+      resetInput();
+    };
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    isRecording = false;
     micBtn.textContent = "🎤";
-  };
-
-  recognition.onnomatch = () => {
-    micBtn.textContent = "🎤";
-  };
-
-  recognition.onend = () => {
-    micBtn.textContent = "🎤";
-  };
-
-  recognition.onresult = async (event) => {
-    const spokenText = event.results[0][0].transcript;
-    chatInput.value = spokenText;
-
-    if (!roomRef) return;
-
-    const translatedText = await translateText(spokenText, targetLang);
-    const timestamp = Date.now();
-
-    push(roomRef, {
-      from: userName,
-      originalText: spokenText,
-      translatedText,
-      timestamp,
-    });
-
-    resetInput();
-  };
-
-  recognition.start();
+  } else {
+    recognition.start();
+  }
 });
+
 
 // AGRUPAR MENSAJES
 function renderMessage({ from, originalText, translatedText, timestamp }) {
