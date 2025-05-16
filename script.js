@@ -229,6 +229,15 @@ micBtn.addEventListener("click", () => {
 });
 
 function renderMessage({ from, originalText, translatedText, timestamp, lang }) {
+  if (lang === "admin" && from === "ADMIN") {
+  const global = document.createElement("div");
+  global.className = "mensaje-global";
+  global.textContent = `[ADMIN] ${translatedText}`;
+  chatWindow.appendChild(global);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+  return;
+}
+
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
   const showOriginal = lang === userLang && !translateOwnLang;
