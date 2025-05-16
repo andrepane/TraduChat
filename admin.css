@@ -49,3 +49,28 @@ h1 {
 .sala-card .danger:hover {
   background-color: darkred;
 }
+
+#mensaje-global {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  margin-top: 2rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+#mensaje-global input,
+#mensaje-global select {
+  width: 100%;
+  padding: 0.8rem;
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+#mensaje-global button {
+  padding: 0.8rem 1.5rem;
+  background-color: #00b451;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
