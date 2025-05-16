@@ -3,7 +3,6 @@ import {
   getDatabase,
   ref,
   push,
-  onChildAdded,
   onValue,
   onDisconnect,
   set,
@@ -16,7 +15,7 @@ const firebaseConfig = {
   authDomain: "traduchat-47658.firebaseapp.com",
   databaseURL: "https://traduchat-47658-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "traduchat-47658",
-  storageBucket: "traduchat-47658.firebasestorage.app",
+  storageBucket: "traduchat-47658.appspot.com",
   messagingSenderId: "77137797935",
   appId: "1:77137797935:web:caa5bf672bcd90448c77da",
   measurementId: "G-XXC1WTYBRP"
@@ -53,7 +52,7 @@ let lastSender = null;
 let userId = null;
 let previousUsers = [];
 
-// HASH SEGURO CON SHA-256
+// 🔐 SHA-256 Hash seguro
 async function hashPassword(pwd) {
   const encoder = new TextEncoder();
   const data = encoder.encode(pwd);
@@ -88,21 +87,29 @@ joinBtn.addEventListener("click", async () => {
   }
 
   const salaId = `${roomCode}__${await hashPassword(password)}`;
+
+  if (roomRef) off(roomRef); // 👈 LIMPIA antes de reusar
   roomRef = ref(db, `rooms/${salaId}`);
 
-  off(roomRef); // limpiar listeners previos
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
 
   const esAdmin = secretCode === "1234-ADMIN-SECRETO";
-  if (esAdmin) clearBtn.style.display = "inline-block";
+  clearBtn.style.display = esAdmin ? "inline-block" : "none";
 
-  onChildAdded(roomRef, (snapshot) => {
-    const message = snapshot.val();
-    if (!message || !message.from || !message.translatedText) return;
-    renderMessage(message);
+  // ✅ Carga historial completo al entrar
+  onValue(roomRef, (snapshot) => {
+    chatWindow.innerHTML = "";
+    lastSender = null;
+    snapshot.forEach((child) => {
+      const message = child.val();
+      if (message?.from && message?.translatedText) {
+        renderMessage(message);
+      }
+    });
   });
 
+  // ✅ PRESENCIA
   userId = `${userName}-${Math.random().toString(36).slice(2, 6)}`;
   const presenceRef = ref(db, `presence/${salaId}/${userId}`);
   await push(presenceRef, { name: userName });
@@ -116,19 +123,19 @@ joinBtn.addEventListener("click", async () => {
     });
 
     currentUsers.forEach((name) => {
-      if (!previousUsers.includes(name) && name !== userName) {
+      if (!previousUsers.includes(name) && name !== userName)
         showSystemMessage(`${name} se ha conectado`);
-      }
     });
+
     previousUsers.forEach((name) => {
-      if (!currentUsers.includes(name) && name !== userName) {
+      if (!currentUsers.includes(name) && name !== userName)
         showSystemMessage(`${name} se ha desconectado`);
-      }
     });
 
     previousUsers = currentUsers;
   });
 
+  // ✅ INDICADOR DE ESCRITURA
   onValue(ref(db, `typing/${salaId}`), (snapshot) => {
     const data = snapshot.val();
     const typingUsers = Object.keys(data || {}).filter(
@@ -154,10 +161,7 @@ joinBtn.addEventListener("click", async () => {
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
-  if (!text || !roomRef || !roomRef.key) {
-    alert("Error al enviar mensaje. Sala no válida.");
-    return;
-  }
+  if (!text || !roomRef || !roomRef.key) return;
 
   const translatedText = await translateText(text, targetLang);
   const timestamp = Date.now();
@@ -174,11 +178,11 @@ chatForm.addEventListener("submit", async (e) => {
 });
 
 clearBtn.addEventListener("click", () => {
-  if (!roomRef) return;
-  if (!confirm("¿Seguro que quieres borrar todo el chat?")) return;
-  set(roomRef, null);
-  chatWindow.innerHTML = "";
-  showSystemMessage(`💥 ${userName} ha borrado el chat`);
+  if (roomRef && confirm("¿Seguro que quieres borrar todo el chat?")) {
+    set(roomRef, null);
+    chatWindow.innerHTML = "";
+    showSystemMessage(`💥 ${userName} ha borrado el chat`);
+  }
 });
 
 leaveBtn.addEventListener("click", async () => {
@@ -196,7 +200,7 @@ leaveBtn.addEventListener("click", async () => {
   previousUsers = [];
 });
 
-// 🎤 VOZ A TEXTO
+// 🎤 MICRÓFONO
 let isRecording = false;
 let finalTranscript = "";
 let recognition = null;
@@ -208,10 +212,7 @@ micBtn.addEventListener("click", () => {
   }
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("Tu navegador no soporta reconocimiento de voz.");
-    return;
-  }
+  if (!SpeechRecognition) return alert("Tu navegador no soporta reconocimiento de voz.");
 
   if (isRecording && recognition) {
     recognition.stop();
@@ -222,7 +223,6 @@ micBtn.addEventListener("click", () => {
   recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
-
   finalTranscript = "";
   isRecording = true;
   micBtn.textContent = "🛑 Detener";
@@ -256,10 +256,7 @@ micBtn.addEventListener("click", () => {
   recognition.start();
 });
 
-// 📤 RENDERIZAR MENSAJES
 function renderMessage({ from, originalText, translatedText, timestamp, lang }) {
-  if (!from || !timestamp) return;
-
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
   const showOriginal = lang === userLang && !translateOwnLang;
@@ -277,7 +274,7 @@ function renderMessage({ from, originalText, translatedText, timestamp, lang }) 
 
   const messageBubble = document.createElement("div");
   messageBubble.className = "message-bubble";
-  messageBubble.textContent = translatedText || originalText || "[Mensaje vacío]";
+  messageBubble.textContent = showOriginal ? originalText : translatedText;
 
   const groups = chatWindow.querySelectorAll(`.message-group.${side}`);
   const lastGroup = groups[groups.length - 1];
@@ -287,10 +284,10 @@ function renderMessage({ from, originalText, translatedText, timestamp, lang }) 
 }
 
 function showSystemMessage(text) {
-  const systemMsg = document.createElement("div");
-  systemMsg.className = "system-message";
-  systemMsg.textContent = text;
-  chatWindow.appendChild(systemMsg);
+  const msg = document.createElement("div");
+  msg.className = "system-message";
+  msg.textContent = text;
+  chatWindow.appendChild(msg);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
@@ -300,8 +297,8 @@ function formatTime(timestamp) {
 }
 
 async function translateText(text, targetLang) {
-  const encodedText = encodeURIComponent(text);
-  const url = `https://magicloops.dev/api/loop/1f32ffbd-1eb5-4e1c-ab57-f0a322e5a1c3/run?text=${encodedText}&targetLanguage=${targetLang}`;
+  const encoded = encodeURIComponent(text);
+  const url = `https://magicloops.dev/api/loop/1f32ffbd-1eb5-4e1c-ab57-f0a322e5a1c3/run?text=${encoded}&targetLanguage=${targetLang}`;
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -318,7 +315,7 @@ function resetInput() {
   micBtn.textContent = "🎤";
 }
 
-// 🎨 Animación del título
+// 🎨 ANIMACIÓN DEL TÍTULO
 const h1 = document.getElementById("titulo-wave");
 const text = h1.textContent;
 h1.textContent = "";
@@ -338,4 +335,3 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service worker registrado"))
     .catch((err) => console.error("❌ Error al registrar service worker:", err));
 }
-
