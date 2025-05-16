@@ -340,7 +340,7 @@ if (autolog) {
     roomPasswordInput.value = password;
     langSelect.value = lang;
     sessionStorage.removeItem("admin-autologin");
-    sessionStorage.setItem("admin-secret", "1234-ADMIN-SECRETO");
+    sessionStorage.setItem("admin-secret", "Rachele11");
     setTimeout(() => entrarAlChat(), 100);
   } catch (err) {
     console.error("❌ Auto-login error:", err);
