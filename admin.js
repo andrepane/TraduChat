@@ -2,7 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getDatabase,
   ref,
-  onValue
+  onValue,
+  remove,
+  set
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -22,8 +24,7 @@ const db = getDatabase(app);
 const contenedor = document.getElementById("sala-lista");
 
 function extraerNombreSala(salaId) {
-  const [code] = salaId.split("__");
-  return code;
+  return salaId.split("__")[0];
 }
 
 function crearTarjeta(salaId) {
@@ -36,9 +37,10 @@ function crearTarjeta(salaId) {
   titulo.textContent = `🟢 Sala: ${nombreSala}`;
   div.appendChild(titulo);
 
-  const btn = document.createElement("button");
-  btn.textContent = "Entrar como admin";
-  btn.addEventListener("click", () => {
+  // Botón entrar
+  const btnEntrar = document.createElement("button");
+  btnEntrar.textContent = "Entrar como admin";
+  btnEntrar.addEventListener("click", () => {
     const nombre = prompt("Tu nombre de usuario:");
     const idioma = prompt("Idioma (es o it):");
     const clave = prompt("Contraseña de la sala:");
@@ -48,20 +50,45 @@ function crearTarjeta(salaId) {
       return;
     }
 
-    // Guarda datos y abre chat
     sessionStorage.setItem("admin-autologin", JSON.stringify({
       username: nombre,
       roomCode: nombreSala,
       password: clave,
-      lang: idioma
+      lang: idioma,
+      isAdmin: true
     }));
     window.open("index.html", "_blank");
   });
+  div.appendChild(btnEntrar);
 
-  div.appendChild(btn);
+  // Botón borrar mensajes
+  const btnBorrar = document.createElement("button");
+  btnBorrar.textContent = "🗑 Borrar mensajes";
+  btnBorrar.className = "danger";
+  btnBorrar.addEventListener("click", () => {
+    if (confirm(`¿Borrar todos los mensajes de la sala "${nombreSala}"?`)) {
+      remove(ref(db, `rooms/${salaId}`));
+    }
+  });
+  div.appendChild(btnBorrar);
+
+  // Botón cerrar sala
+  const btnCerrar = document.createElement("button");
+  btnCerrar.textContent = "🚪 Cerrar sala";
+  btnCerrar.className = "danger";
+  btnCerrar.addEventListener("click", () => {
+    if (confirm(`¿Cerrar completamente la sala "${nombreSala}" (incluye usuarios y escritura)?`)) {
+      remove(ref(db, `rooms/${salaId}`));
+      remove(ref(db, `presence/${salaId}`));
+      remove(ref(db, `typing/${salaId}`));
+    }
+  });
+  div.appendChild(btnCerrar);
+
   contenedor.appendChild(div);
 }
 
+// Escuchar salas activas
 onValue(ref(db, "rooms"), (snapshot) => {
   contenedor.innerHTML = "";
   const data = snapshot.val();
@@ -70,7 +97,6 @@ onValue(ref(db, "rooms"), (snapshot) => {
     return;
   }
 
-  Object.keys(data).forEach(salaId => {
-    crearTarjeta(salaId);
-  });
+  Object.keys(data).forEach(salaId => crearTarjeta(salaId));
 });
+
