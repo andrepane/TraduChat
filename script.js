@@ -45,7 +45,6 @@ const clearBtn = document.getElementById("clear-chat");
 const leaveBtn = document.getElementById("leave-chat");
 const micBtn = document.getElementById("mic-btn");
 
-const adminName = "Andrea";
 
 let userName = null;
 let userLang = null;
@@ -96,7 +95,13 @@ joinBtn.addEventListener("click", async () => {
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
 
-  if (userName === adminName) clearBtn.style.display = "inline-block";
+  const adminSecretInput = document.getElementById("admin-secret");
+  const secretCode = adminSecretInput.value.trim();
+  const esAdmin = secretCode === "1234-ADMIN-SECRETO";
+  
+  if (esAdmin) {
+    clearBtn.style.display = "inline-block";
+  }
 
   onChildAdded(roomRef, (snapshot) => {
     const message = snapshot.val();
