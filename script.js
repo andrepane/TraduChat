@@ -80,7 +80,7 @@ async function entrarAlChat() {
   chatSection.classList.remove("hidden");
 
   const adminBtn = document.getElementById("admin-access");
-  if (adminBtn) adminBtn.style.display = "none";
+  if (adminBtn) adminBtn.classList.add("hidden");
 
   const esAdmin = sessionStorage.getItem("isAdmin") === "true";
   clearBtn.style.display = esAdmin ? "inline-block" : "none";
@@ -194,7 +194,7 @@ leaveBtn.addEventListener("click", async () => {
   previousUsers = [];
 
   const adminBtn = document.getElementById("admin-access");
-  if (adminBtn) adminBtn.style.display = "block";
+  if (adminBtn) adminBtn.classList.remove("hidden");
 });
 
 let isRecording = false;
@@ -355,3 +355,4 @@ if (autolog) {
     console.error("❌ Auto-login error:", err);
   }
 }
+
