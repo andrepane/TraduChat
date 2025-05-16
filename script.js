@@ -319,18 +319,27 @@ if ("serviceWorker" in navigator) {
   );
 }
 
-// 🔐 Versión admin auto-login
-document.getElementById("admin-access").addEventListener("click", () => {
-  const code = prompt("Introduce el código secreto de administrador:");
-  if (code === "Rachele11") {
-    sessionStorage.setItem("admin-secret", code);
+const adminHash = "45c41cc4e37203ddff8434a0cf116fc226a1a8bc62190c729c6a9473a38b4e62";
+
+document.getElementById("admin-access").addEventListener("click", async () => {
+  const input = prompt("Introduce el código secreto de administrador:");
+  if (!input) return;
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const inputHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+  if (inputHash === adminHash) {
+    sessionStorage.setItem("isAdmin", "true");
     window.open("admin.html", "_blank");
-  } else if (code) {
+  } else {
     alert("Código incorrecto");
   }
 });
 
-// 🚀 Auto-login desde el panel admin
+// 🔐 Auto-login desde el panel admin
 const autolog = sessionStorage.getItem("admin-autologin");
 if (autolog) {
   try {
@@ -340,9 +349,10 @@ if (autolog) {
     roomPasswordInput.value = password;
     langSelect.value = lang;
     sessionStorage.removeItem("admin-autologin");
-    sessionStorage.setItem("admin-secret", "Rachele11");
+    sessionStorage.setItem("isAdmin", "true"); // ✅ Marca como admin en sesión
     setTimeout(() => entrarAlChat(), 100);
   } catch (err) {
     console.error("❌ Auto-login error:", err);
   }
 }
+
