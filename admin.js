@@ -162,13 +162,15 @@ botonGlobal.addEventListener("click", async () => {
   const destino = selectGlobal.value;
   if (!texto) return alert("Escribe un mensaje primero.");
 
-  const mensaje = {
-    from: "ADMIN",
-    originalText: texto,
-    translatedText: texto,
-    timestamp: Date.now(),
-    lang: "es"
-  };
+push(ref(db, `rooms/${salaId}`), {
+  from: "ADMIN",
+  originalText: mensaje,
+  translatedText: mensaje,
+  timestamp: Date.now(),
+  lang: "admin",
+  tipo: "global"
+});
+
 
   if (destino === "ALL") {
     const snapshot = await get(ref(db, "rooms"));
