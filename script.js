@@ -8,6 +8,7 @@ import {
   onDisconnect,
   set,
   remove,
+  off,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // 🔐 Tus credenciales
@@ -62,6 +63,7 @@ joinBtn.addEventListener("click", async () => {
   }
 
   roomRef = ref(db, "rooms/" + roomCode);
+  off(roomRef); // 🧹 Limpia cualquier listener previo
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
 
