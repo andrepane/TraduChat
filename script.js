@@ -155,9 +155,9 @@ leaveBtn.addEventListener("click", async () => {
 });
 
 // MICRÓFONO — VOZ A TEXTO Y TRADUCCIÓN
-let recognition = null;
 let isRecording = false;
 let finalTranscript = "";
+let recognition = null;
 
 micBtn.addEventListener("click", () => {
   if (!userLang || !roomRef) {
@@ -170,51 +170,55 @@ micBtn.addEventListener("click", () => {
     return;
   }
 
+  // Si ya está grabando, detenemos la grabación
+  if (isRecording && recognition) {
+    recognition.stop();
+    return;
+  }
+
+  // Creamos una nueva instancia cada vez que empieza
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = userLang === "es" ? "es-ES" : "it-IT"; // 👈 Aquí se actualiza correctamente
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
 
-  if (!recognition) {
-    recognition = new SpeechRecognition();
-    recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+  finalTranscript = "";
+  isRecording = true;
+  micBtn.textContent = "🛑 Detener";
 
-    recognition.onstart = () => {
-      finalTranscript = "";
-      isRecording = true;
-      micBtn.textContent = "🛑 Detener";
-    };
-
-    recognition.onerror = (e) => {
-      console.error("Error de voz:", e.error);
-      isRecording = false;
-      micBtn.textContent = "🎤";
-    };
-
-    recognition.onresult = (event) => {
-      let interimTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
+  recognition.onresult = (event) => {
+    let interimTranscript = "";
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
       }
-      chatInput.value = finalTranscript + interimTranscript;
-    };
+    }
+    chatInput.value = finalTranscript + interimTranscript;
+  };
 
-    recognition.onend = () => {
-      isRecording = false;
-      micBtn.textContent = "🎤";
-      chatInput.value = finalTranscript || chatInput.value;
-    };
-  }
+  recognition.onerror = (e) => {
+    console.error("Error de voz:", e.error);
+    isRecording = false;
+    micBtn.textContent = "🎤";
+  };
 
-  if (isRecording) {
-    recognition.stop(); // 🔴 Detiene inmediatamente sin esperar silencio
-  } else {
-    recognition.start();
-  }
+  recognition.onnomatch = () => {
+    console.warn("No se reconoció la voz.");
+    isRecording = false;
+    micBtn.textContent = "🎤";
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    micBtn.textContent = "🎤";
+    chatInput.value = finalTranscript || chatInput.value;
+  };
+
+  recognition.start();
 });
 
 
