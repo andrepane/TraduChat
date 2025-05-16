@@ -79,6 +79,9 @@ async function entrarAlChat() {
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
 
+  const adminBtn = document.getElementById("admin-access");
+  if (adminBtn) adminBtn.style.display = "none";
+
   const esAdmin = sessionStorage.getItem("isAdmin") === "true";
   clearBtn.style.display = esAdmin ? "inline-block" : "none";
 
@@ -189,6 +192,9 @@ leaveBtn.addEventListener("click", async () => {
   userId = null;
   roomRef = null;
   previousUsers = [];
+
+  const adminBtn = document.getElementById("admin-access");
+  if (adminBtn) adminBtn.style.display = "block";
 });
 
 let isRecording = false;
