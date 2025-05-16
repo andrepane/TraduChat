@@ -158,19 +158,18 @@ onValue(ref(db, "rooms"), (snapshot) => {
 
 // ✉️ Enviar mensaje global
 botonGlobal.addEventListener("click", async () => {
-  const texto = textareaGlobal.value.trim();
+  const mensajeTexto = textareaGlobal.value.trim();
   const destino = selectGlobal.value;
-  if (!texto) return alert("Escribe un mensaje primero.");
+  if (!mensajeTexto) return alert("Escribe un mensaje primero.");
 
-push(ref(db, `rooms/${salaId}`), {
-  from: "ADMIN",
-  originalText: mensaje,
-  translatedText: mensaje,
-  timestamp: Date.now(),
-  lang: "admin",
-  tipo: "global"
-});
-
+  const mensaje = {
+    from: "ADMIN",
+    originalText: mensajeTexto,
+    translatedText: mensajeTexto,
+    timestamp: Date.now(),
+    lang: "admin",
+    tipo: "global"
+  };
 
   if (destino === "ALL") {
     const snapshot = await get(ref(db, "rooms"));
@@ -186,3 +185,4 @@ push(ref(db, `rooms/${salaId}`), {
   textareaGlobal.value = "";
   alert("Mensaje enviado correctamente.");
 });
+
