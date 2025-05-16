@@ -3,7 +3,7 @@ import {
   getDatabase,
   ref,
   onValue,
-  remove
+  get
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -18,35 +18,35 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const table = document.getElementById("room-table");
-const presenceRef = ref(db, "presence");
+const container = document.getElementById("sala-lista");
 
-onValue(presenceRef, (snapshot) => {
-  table.innerHTML = "";
-  snapshot.forEach((roomSnap) => {
-    const salaId = roomSnap.key;
-    let userCount = 0;
+onValue(ref(db, "presence"), async (snapshot) => {
+  container.innerHTML = "";
+  if (!snapshot.exists()) {
+    container.textContent = "No hay salas activas.";
+    return;
+  }
 
-    roomSnap.forEach((userSnap) => {
-      const userObj = userSnap.val();
-      if (userObj?.name) userCount++;
-    });
+  const salas = snapshot.val();
+  for (const salaId in salas) {
+    const users = Object.values(salas[salaId]).map(u => Object.values(u)[0]?.name || "Desconocido");
+    const [roomCode] = salaId.split("__");
 
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${salaId}</td>
-      <td>${userCount}</td>
-      <td><button class="delete" onclick="deleteRoom('${salaId}')">Eliminar sala</button></td>
+    const salaDiv = document.createElement("div");
+    salaDiv.className = "sala";
+    salaDiv.innerHTML = `
+      <h2>Sala: <strong>${roomCode}</strong></h2>
+      <p>Usuarios conectados: ${users.length}</p>
+      <p>${users.join(", ")}</p>
+      <button onclick="abrirSala('${roomCode}')">Entrar</button>
     `;
-    table.appendChild(row);
-  });
+    container.appendChild(salaDiv);
+  }
 });
 
-window.deleteRoom = async (salaId) => {
-  const confirmDelete = confirm(`¿Eliminar completamente la sala \"${salaId}\"?`);
-  if (!confirmDelete) return;
-  await remove(ref(db, `rooms/${salaId}`));
-  await remove(ref(db, `presence/${salaId}`));
-  await remove(ref(db, `typing/${salaId}`));
-  alert("Sala eliminada.");
+window.abrirSala = function (roomCode) {
+  const pwd = prompt(`Introduce la contraseña para la sala "${roomCode}"`);
+  if (!pwd) return;
+  sessionStorage.setItem("autoRoom", JSON.stringify({ code: roomCode, pass: pwd }));
+  window.location.href = "index.html";
 };
