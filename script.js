@@ -10,7 +10,6 @@ import {
   off
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-// 🔐 Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDcQfDtysQmIBSW75_KWy5qyXLKQ6X41LU",
   authDomain: "traduchat-47658.firebaseapp.com",
@@ -25,7 +24,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// 🔧 Variables globales
 const typingTimeouts = {};
 let translateOwnLang = false;
 let userName = null;
@@ -36,7 +34,6 @@ let lastSender = null;
 let userId = null;
 let previousUsers = [];
 
-// 🎯 Elementos DOM
 const usernameInput = document.getElementById("username");
 const langSelect = document.getElementById("language-select");
 const roomInput = document.getElementById("room-code");
@@ -52,7 +49,6 @@ const clearBtn = document.getElementById("clear-chat");
 const leaveBtn = document.getElementById("leave-chat");
 const micBtn = document.getElementById("mic-btn");
 
-// 🔐 Hash SHA-256 para contraseña
 async function hashPassword(pwd) {
   const encoder = new TextEncoder();
   const data = encoder.encode(pwd);
@@ -61,7 +57,6 @@ async function hashPassword(pwd) {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-// ✅ Entrar a una sala (reutilizable)
 async function entrarAlChat() {
   const roomCode = roomInput.value.trim();
   const password = roomPasswordInput.value.trim();
@@ -82,7 +77,7 @@ async function entrarAlChat() {
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
 
-  const esAdmin = sessionStorage.getItem("admin-secret") === "1234-ADMIN-SECRETO";
+  const esAdmin = sessionStorage.getItem("isAdmin") === "true";
   clearBtn.style.display = esAdmin ? "inline-block" : "none";
 
   onValue(roomRef, (snapshot) => {
@@ -140,13 +135,11 @@ async function entrarAlChat() {
   });
 }
 
-// 🚪 Entrar desde botón
 joinBtn.addEventListener("click", () => {
-  sessionStorage.removeItem("admin-secret");
+  sessionStorage.removeItem("isAdmin");
   entrarAlChat();
 });
 
-// ⌨️ Indicador de escritura
 chatInput.addEventListener("input", () => {
   if (!roomRef || !roomRef.key || !userName) return;
   const userTypingRef = ref(db, `typing/${roomRef.key}/${userName}`);
@@ -157,7 +150,6 @@ chatInput.addEventListener("input", () => {
   }, 3000);
 });
 
-// 📩 Envío de mensaje
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
@@ -174,7 +166,6 @@ chatForm.addEventListener("submit", async (e) => {
   resetInput();
 });
 
-// 🧹 Borrar chat
 clearBtn.addEventListener("click", () => {
   if (roomRef && confirm("¿Seguro que quieres borrar todo el chat?")) {
     set(roomRef, null);
@@ -183,7 +174,6 @@ clearBtn.addEventListener("click", () => {
   }
 });
 
-// 👋 Salir de la sala
 leaveBtn.addEventListener("click", async () => {
   if (!roomRef || !userId) return;
   await remove(ref(db, `presence/${roomRef.key}/${userId}`));
@@ -199,7 +189,6 @@ leaveBtn.addEventListener("click", async () => {
   previousUsers = [];
 });
 
-// 🎤 Micrófono
 let isRecording = false;
 let finalTranscript = "";
 let recognition = null;
@@ -239,7 +228,6 @@ micBtn.addEventListener("click", () => {
   recognition.start();
 });
 
-// 🧱 Mensajes
 function renderMessage({ from, originalText, translatedText, timestamp, lang }) {
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
@@ -265,7 +253,6 @@ function renderMessage({ from, originalText, translatedText, timestamp, lang }) 
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-// 🔔 Mensaje de sistema
 function showSystemMessage(text) {
   const msg = document.createElement("div");
   msg.className = "system-message";
@@ -279,7 +266,6 @@ function formatTime(timestamp) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// 🌍 Traducción
 async function translateText(text, targetLang) {
   const encoded = encodeURIComponent(text);
   const url = `https://magicloops.dev/api/loop/1f32ffbd-1eb5-4e1c-ab57-f0a322e5a1c3/run?text=${encoded}&targetLanguage=${targetLang}`;
@@ -298,7 +284,6 @@ function resetInput() {
   micBtn.textContent = "🎤";
 }
 
-// 🎨 Animación del título
 const h1 = document.getElementById("titulo-wave");
 const text = h1.textContent;
 h1.textContent = "";
@@ -312,7 +297,6 @@ h1.textContent = "";
   h1.appendChild(span);
 });
 
-// 🛡 Service Worker
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js").then(() =>
     console.log("✅ Service worker registrado")
@@ -339,7 +323,6 @@ document.getElementById("admin-access").addEventListener("click", async () => {
   }
 });
 
-// 🔐 Auto-login desde el panel admin
 const autolog = sessionStorage.getItem("admin-autologin");
 if (autolog) {
   try {
@@ -349,10 +332,9 @@ if (autolog) {
     roomPasswordInput.value = password;
     langSelect.value = lang;
     sessionStorage.removeItem("admin-autologin");
-    sessionStorage.setItem("isAdmin", "true"); // ✅ Marca como admin en sesión
+    sessionStorage.setItem("isAdmin", "true");
     setTimeout(() => entrarAlChat(), 100);
   } catch (err) {
     console.error("❌ Auto-login error:", err);
   }
 }
-
