@@ -275,7 +275,8 @@ button:hover {
 
 @media (max-width: 600px) {
   #admin-access {
-    display: none;
+    width: 30%;
+    left: 0;
   }
 }
 
