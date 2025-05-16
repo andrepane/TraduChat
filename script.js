@@ -303,7 +303,7 @@ if ("serviceWorker" in navigator) {
   );
 }
 
-const adminHash = "f62d10dbf635953fc8bde8ac80a8766d16357b90";
+const adminHash = "62e081a1ce819dfdbb7d46d0beb86f1d8c20f1df846b3a2879cd78bfba2479fa";
 
 document.getElementById("admin-access").addEventListener("click", async () => {
   const input = prompt("Introduce el código secreto de administrador:");
