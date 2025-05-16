@@ -258,20 +258,19 @@ h1 {
 }
 
 .translate-label {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5em;
   font-size: 0.95rem;
-  color: #333;
-  background: #f4f4f4;
-  padding: 0.5em 0.8em;
-  border-radius: 8px;
-  margin-top: 1em;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
+  color: #222;
+  gap: 0.4em;
+  cursor: pointer;
+  user-select: none;
 }
 
 .translate-label input[type="checkbox"] {
-  transform: scale(1.2);
+  width: 16px;
+  height: 16px;
+  margin: 0;
   accent-color: #00b451;
 }
 
