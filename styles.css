@@ -260,3 +260,22 @@ button:hover {
     transform: scale(0.75);
   }
 }
+
+#admin-access {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 999;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  background-color: #003e0b;
+  color: white;
+}
+
+@media (max-width: 600px) {
+  #admin-access {
+    display: none;
+  }
+}
+
