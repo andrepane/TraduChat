@@ -10,7 +10,8 @@ import {
   ref,
   onValue,
   remove,
-  push
+  push,
+  get
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -28,6 +29,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const contenedor = document.getElementById("sala-lista");
 
+// 🔁 Mostrar salas
 function extraerNombreSala(salaId) {
   return salaId.split("__")[0];
 }
@@ -104,47 +106,60 @@ function crearTarjeta(salaId) {
   contenedor.appendChild(div);
 }
 
-// Mostrar salas activas
+// 📦 Cargar salas y también rellenar el select para el mensaje global
+const selectGlobal = document.createElement("select");
+selectGlobal.id = "select-destino";
+selectGlobal.style.marginTop = "2rem";
+selectGlobal.style.padding = "0.5rem";
+selectGlobal.style.fontSize = "1rem";
+
+const textareaGlobal = document.createElement("textarea");
+textareaGlobal.placeholder = "Mensaje global del admin...";
+textareaGlobal.rows = 3;
+textareaGlobal.style.width = "100%";
+textareaGlobal.style.marginTop = "0.5rem";
+textareaGlobal.style.padding = "0.5rem";
+textareaGlobal.style.fontSize = "1rem";
+
+const botonGlobal = document.createElement("button");
+botonGlobal.textContent = "📢 Enviar mensaje";
+botonGlobal.style.marginTop = "0.5rem";
+
+document.body.appendChild(document.createElement("hr"));
+document.body.appendChild(selectGlobal);
+document.body.appendChild(textareaGlobal);
+document.body.appendChild(botonGlobal);
+
+// Rellenar el select con las salas
 onValue(ref(db, "rooms"), (snapshot) => {
   contenedor.innerHTML = "";
+  selectGlobal.innerHTML = "";
+
   const data = snapshot.val();
   if (!data) {
     contenedor.textContent = "No hay salas activas.";
     return;
   }
 
-  Object.keys(data).forEach((salaId) => crearTarjeta(salaId));
-});
+  const opcionTodas = document.createElement("option");
+  opcionTodas.value = "ALL";
+  opcionTodas.textContent = "🌐 Todas las salas";
+  selectGlobal.appendChild(opcionTodas);
 
-// ✅ Formulario de mensaje global
-const msgContainer = document.createElement("div");
-msgContainer.style.margin = "2rem 1rem";
-msgContainer.innerHTML = `
-  <h3>✉️ Enviar mensaje global</h3>
-  <select id="sala-select" style="margin-bottom: 0.5rem; padding: 0.5rem;"></select>
-  <textarea id="mensaje-global" rows="3" placeholder="Escribe el mensaje..." style="width: 100%; padding: 0.5rem;"></textarea>
-  <button id="enviar-global" style="margin-top: 0.5rem;">Enviar mensaje</button>
-`;
-document.body.appendChild(msgContainer);
+  Object.keys(data).forEach((salaId) => {
+    crearTarjeta(salaId);
 
-const salaSelect = document.getElementById("sala-select");
-const mensajeInput = document.getElementById("mensaje-global");
-const enviarBtn = document.getElementById("enviar-global");
-
-// Rellenar select de salas
-onValue(ref(db, "rooms"), (snapshot) => {
-  salaSelect.innerHTML = `<option value="ALL">🌐 Todas las salas</option>`;
-  snapshot.forEach((sala) => {
     const option = document.createElement("option");
-    option.value = sala.key;
-    option.textContent = sala.key;
-    salaSelect.appendChild(option);
+    option.value = salaId;
+    option.textContent = salaId;
+    selectGlobal.appendChild(option);
   });
 });
 
-enviarBtn.addEventListener("click", async () => {
-  const texto = mensajeInput.value.trim();
-  const destino = salaSelect.value;
+// ✉️ Enviar mensaje global
+botonGlobal.addEventListener("click", async () => {
+  const texto = textareaGlobal.value.trim();
+  const destino = selectGlobal.value;
   if (!texto) return alert("Escribe un mensaje primero.");
 
   const mensaje = {
@@ -156,14 +171,16 @@ enviarBtn.addEventListener("click", async () => {
   };
 
   if (destino === "ALL") {
-    const snap = await onValue(ref(db, "rooms"), () => {});
-    Object.keys(snap.val() || {}).forEach((salaId) => {
-      push(ref(db, `rooms/${salaId}`), mensaje);
-    });
+    const snapshot = await get(ref(db, "rooms"));
+    if (snapshot.exists()) {
+      Object.keys(snapshot.val()).forEach((salaId) => {
+        push(ref(db, `rooms/${salaId}`), mensaje);
+      });
+    }
   } else {
     push(ref(db, `rooms/${destino}`), mensaje);
   }
 
-  mensajeInput.value = "";
-  alert("Mensaje enviado.");
+  textareaGlobal.value = "";
+  alert("Mensaje enviado correctamente.");
 });
