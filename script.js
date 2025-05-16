@@ -37,7 +37,8 @@ const chatWindow = document.getElementById("chat-window");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const clearBtn = document.getElementById("clear-chat");
-const leaveBtn = document.getElementById("leave-chat"); // 👈 nuevo
+const leaveBtn = document.getElementById("leave-chat");
+const micBtn = document.getElementById("mic-btn");
 
 const adminName = "Andrea";
 
@@ -104,7 +105,7 @@ joinBtn.addEventListener("click", async () => {
   });
 });
 
-// ENVIAR MENSAJE
+// ENVIAR MENSAJE MANUAL
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
@@ -120,10 +121,10 @@ chatForm.addEventListener("submit", async (e) => {
     timestamp,
   });
 
-  chatInput.value = "";
+  resetInput();
 });
 
-// BOTÓN BORRAR CHAT (solo admin)
+// BORRAR CHAT (solo admin)
 clearBtn.addEventListener("click", () => {
   if (!roomRef) return;
   const confirmDelete = confirm("¿Seguro que quieres borrar todo el chat?");
@@ -134,7 +135,7 @@ clearBtn.addEventListener("click", () => {
   showSystemMessage(`💥 ${userName} ha borrado el chat`);
 });
 
-// BOTÓN SALIR DEL CHAT (para todos)
+// SALIR DEL CHAT
 leaveBtn.addEventListener("click", async () => {
   const roomCode = roomInput.value.trim();
   if (roomCode && userId) {
@@ -153,7 +154,58 @@ leaveBtn.addEventListener("click", async () => {
   previousUsers = [];
 });
 
-// MENSAJE AGRUPADO
+// MICRÓFONO — VOZ A TEXTO Y TRADUCCIÓN
+micBtn.addEventListener("click", () => {
+  if (!userLang || !roomRef) {
+    alert("Debes entrar en una sala antes de usar el micrófono.");
+    return;
+  }
+
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    micBtn.textContent = "🎙️ Grabando...";
+  };
+
+  recognition.onerror = (e) => {
+    console.error("Error de voz:", e.error);
+    micBtn.textContent = "🎤";
+  };
+
+  recognition.onnomatch = () => {
+    micBtn.textContent = "🎤";
+  };
+
+  recognition.onend = () => {
+    micBtn.textContent = "🎤";
+  };
+
+  recognition.onresult = async (event) => {
+    const spokenText = event.results[0][0].transcript;
+    chatInput.value = spokenText;
+
+    if (!roomRef) return;
+
+    const translatedText = await translateText(spokenText, targetLang);
+    const timestamp = Date.now();
+
+    push(roomRef, {
+      from: userName,
+      originalText: spokenText,
+      translatedText,
+      timestamp,
+    });
+
+    resetInput();
+  };
+
+  recognition.start();
+});
+
+// AGRUPAR MENSAJES
 function renderMessage({ from, originalText, translatedText, timestamp }) {
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
@@ -182,7 +234,6 @@ function renderMessage({ from, originalText, translatedText, timestamp }) {
   lastSender = from;
 }
 
-// MENSAJE DEL SISTEMA
 function showSystemMessage(text) {
   const systemMsg = document.createElement("div");
   systemMsg.className = "system-message";
@@ -211,7 +262,13 @@ async function translateText(text, targetLang) {
   }
 }
 
-// ANIMACIÓN TÍTULO
+// LIMPIAR INPUT
+function resetInput() {
+  chatInput.value = "";
+  micBtn.textContent = "🎤";
+}
+
+// ANIMACIÓN DEL TÍTULO
 const h1 = document.getElementById("titulo-wave");
 const text = h1.textContent;
 h1.textContent = "";
