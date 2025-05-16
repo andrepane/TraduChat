@@ -302,3 +302,23 @@ h1.textContent = "";
   span.style.animationDelay = `${i * 0.1}s`;
   h1.appendChild(span);
 });
+
+self.addEventListener("install", (event) => {
+  console.log("[Service Worker] Instalado");
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  console.log("[Service Worker] Activado");
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(fetch(event.request));
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("service-worker.js")
+    .then(() => console.log("✅ Service worker registrado"))
+    .catch((err) => console.error("❌ Error al registrar service worker:", err));
+}
