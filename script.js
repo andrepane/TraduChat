@@ -112,7 +112,12 @@ async function iniciarChat(salaId) {
   off(roomRef);
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
-  if (userName === "Andrea") clearBtn.style.display = "inline-block";
+  const creatorSnap = await get(ref(db, `creators/${salaId}`));
+if (creatorSnap.exists() && creatorSnap.val() === userName) {
+  clearBtn.style.display = "inline-block";
+  escucharSolicitudes(salaId); // ✅ Solo el creador podrá aprobar solicitudes
+}
+
 
   onChildAdded(roomRef, snapshot => renderMessage(snapshot.val()));
 
@@ -285,3 +290,49 @@ async function translateText(text, targetLang) {
     return "[Error de traducción]";
   }
 }
+
+async function escucharSolicitudes(salaId) {
+  const requestsRef = ref(db, `accessRequests/${salaId}`);
+  const requestPanel = document.getElementById("request-panel");
+  const requestList = document.getElementById("request-list");
+
+  onValue(requestsRef, (snapshot) => {
+    requestList.innerHTML = "";
+    const data = snapshot.val();
+    if (!data || Object.keys(data).length === 0) {
+      requestPanel.classList.add("hidden");
+      return;
+    }
+
+    requestPanel.classList.remove("hidden");
+
+    Object.entries(data).forEach(([name, status]) => {
+      if (status === "pending") {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <strong>${name}</strong> solicita entrar
+          <button data-user="${name}" class="approve-btn">Aceptar</button>
+          <button data-user="${name}" class="deny-btn">Rechazar</button>
+        `;
+        requestList.appendChild(li);
+      }
+    });
+
+    requestList.querySelectorAll(".approve-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const user = btn.dataset.user;
+        await set(ref(db, `accessPermissions/${salaId}/${user}`), true);
+        await remove(ref(db, `accessRequests/${salaId}/${user}`));
+      });
+    });
+
+    requestList.querySelectorAll(".deny-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const user = btn.dataset.user;
+        await remove(ref(db, `accessRequests/${salaId}/${user}`));
+        showSystemMessage(`❌ Has rechazado la solicitud de ${user}`);
+      });
+    });
+  });
+}
+
