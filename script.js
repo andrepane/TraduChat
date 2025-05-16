@@ -10,6 +10,7 @@ import {
   off
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+// 🔐 Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDcQfDtysQmIBSW75_KWy5qyXLKQ6X41LU",
   authDomain: "traduchat-47658.firebaseapp.com",
@@ -24,14 +25,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// 🔧 Variables globales
 const typingTimeouts = {};
 let translateOwnLang = false;
+let userName = null;
+let userLang = null;
+let targetLang = null;
+let roomRef = null;
+let lastSender = null;
+let userId = null;
+let previousUsers = [];
 
-// ELEMENTOS
+// 🎯 Elementos DOM
 const usernameInput = document.getElementById("username");
 const langSelect = document.getElementById("language-select");
 const roomInput = document.getElementById("room-code");
 const roomPasswordInput = document.getElementById("room-password");
+
 const joinBtn = document.getElementById("join-room");
 const setupSection = document.getElementById("setup");
 const chatSection = document.getElementById("chat-section");
@@ -42,15 +52,7 @@ const clearBtn = document.getElementById("clear-chat");
 const leaveBtn = document.getElementById("leave-chat");
 const micBtn = document.getElementById("mic-btn");
 
-let userName = null;
-let userLang = null;
-let targetLang = null;
-let roomRef = null;
-let lastSender = null;
-let userId = null;
-let previousUsers = [];
-
-// 🔐 SHA-256 Hash seguro
+// 🔐 Hash SHA-256 para contraseña
 async function hashPassword(pwd) {
   const encoder = new TextEncoder();
   const data = encoder.encode(pwd);
@@ -59,20 +61,10 @@ async function hashPassword(pwd) {
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-chatInput.addEventListener("input", () => {
-  if (!roomRef || !roomRef.key || !userName) return;
-  const userTypingRef = ref(db, `typing/${roomRef.key}/${userName}`);
-  set(userTypingRef, true);
-  if (typingTimeouts[userName]) clearTimeout(typingTimeouts[userName]);
-  typingTimeouts[userName] = setTimeout(() => {
-    set(userTypingRef, false);
-  }, 3000);
-});
-
-joinBtn.addEventListener("click", async () => {
+// ✅ Entrar a una sala (reutilizable)
+async function entrarAlChat() {
   const roomCode = roomInput.value.trim();
   const password = roomPasswordInput.value.trim();
-
   userName = usernameInput.value.trim();
   userLang = langSelect.value;
   targetLang = userLang === "es" ? "it" : "es";
@@ -84,28 +76,24 @@ joinBtn.addEventListener("click", async () => {
   }
 
   const salaId = `${roomCode}__${await hashPassword(password)}`;
-
-  if (roomRef) off(roomRef); // 👈 LIMPIA antes de reusar
+  if (roomRef) off(roomRef);
   roomRef = ref(db, `rooms/${salaId}`);
 
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
-clearBtn.style.display = "none";
 
+  const esAdmin = sessionStorage.getItem("admin-secret") === "1234-ADMIN-SECRETO";
+  clearBtn.style.display = esAdmin ? "inline-block" : "none";
 
-  // ✅ Carga historial completo al entrar
   onValue(roomRef, (snapshot) => {
     chatWindow.innerHTML = "";
     lastSender = null;
     snapshot.forEach((child) => {
-      const message = child.val();
-      if (message?.from && message?.translatedText) {
-        renderMessage(message);
-      }
+      const msg = child.val();
+      if (msg?.from && msg?.translatedText) renderMessage(msg);
     });
   });
 
-  // ✅ PRESENCIA
   userId = `${userName}-${Math.random().toString(36).slice(2, 6)}`;
   const presenceRef = ref(db, `presence/${salaId}/${userId}`);
   await push(presenceRef, { name: userName });
@@ -131,7 +119,6 @@ clearBtn.style.display = "none";
     previousUsers = currentUsers;
   });
 
-  // ✅ INDICADOR DE ESCRITURA
   onValue(ref(db, `typing/${salaId}`), (snapshot) => {
     const data = snapshot.val();
     const typingUsers = Object.keys(data || {}).filter(
@@ -149,19 +136,34 @@ clearBtn.style.display = "none";
         chatWindow.appendChild(el);
       }
     } else if (existing) existing.remove();
-
     chatWindow.scrollTop = chatWindow.scrollHeight;
   });
+}
+
+// 🚪 Entrar desde botón
+joinBtn.addEventListener("click", () => {
+  sessionStorage.removeItem("admin-secret");
+  entrarAlChat();
 });
 
+// ⌨️ Indicador de escritura
+chatInput.addEventListener("input", () => {
+  if (!roomRef || !roomRef.key || !userName) return;
+  const userTypingRef = ref(db, `typing/${roomRef.key}/${userName}`);
+  set(userTypingRef, true);
+  if (typingTimeouts[userName]) clearTimeout(typingTimeouts[userName]);
+  typingTimeouts[userName] = setTimeout(() => {
+    set(userTypingRef, false);
+  }, 3000);
+});
+
+// 📩 Envío de mensaje
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
   if (!text || !roomRef || !roomRef.key) return;
-
   const translatedText = await translateText(text, targetLang);
   const timestamp = Date.now();
-
   push(roomRef, {
     from: userName,
     originalText: text,
@@ -169,10 +171,10 @@ chatForm.addEventListener("submit", async (e) => {
     timestamp,
     lang: userLang
   });
-
   resetInput();
 });
 
+// 🧹 Borrar chat
 clearBtn.addEventListener("click", () => {
   if (roomRef && confirm("¿Seguro que quieres borrar todo el chat?")) {
     set(roomRef, null);
@@ -181,6 +183,7 @@ clearBtn.addEventListener("click", () => {
   }
 });
 
+// 👋 Salir de la sala
 leaveBtn.addEventListener("click", async () => {
   if (!roomRef || !userId) return;
   await remove(ref(db, `presence/${roomRef.key}/${userId}`));
@@ -196,19 +199,15 @@ leaveBtn.addEventListener("click", async () => {
   previousUsers = [];
 });
 
-// 🎤 MICRÓFONO
+// 🎤 Micrófono
 let isRecording = false;
 let finalTranscript = "";
 let recognition = null;
 
 micBtn.addEventListener("click", () => {
-  if (!userLang || !roomRef) {
-    alert("Debes entrar en una sala antes de usar el micrófono.");
-    return;
-  }
-
+  if (!userLang || !roomRef) return alert("Entra en una sala primero");
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return alert("Tu navegador no soporta reconocimiento de voz.");
+  if (!SpeechRecognition) return alert("Tu navegador no soporta voz.");
 
   if (isRecording && recognition) {
     recognition.stop();
@@ -218,40 +217,29 @@ micBtn.addEventListener("click", () => {
   recognition = new SpeechRecognition();
   recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
   recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
   finalTranscript = "";
   isRecording = true;
   micBtn.textContent = "🛑 Detener";
 
   recognition.onresult = (event) => {
-    let interimTranscript = "";
+    let interim = "";
     for (let i = event.resultIndex; i < event.results.length; ++i) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) finalTranscript += transcript;
-      else interimTranscript += transcript;
+      const t = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalTranscript += t;
+      else interim += t;
     }
-    chatInput.value = finalTranscript + interimTranscript;
+    chatInput.value = finalTranscript + interim;
   };
 
-  recognition.onerror = () => {
+  recognition.onerror = recognition.onnomatch = recognition.onend = () => {
     isRecording = false;
     micBtn.textContent = "🎤";
-  };
-
-  recognition.onnomatch = () => {
-    isRecording = false;
-    micBtn.textContent = "🎤";
-  };
-
-  recognition.onend = () => {
-    isRecording = false;
-    micBtn.textContent = "🎤";
-    chatInput.value = finalTranscript || chatInput.value;
   };
 
   recognition.start();
 });
 
+// 🧱 Mensajes
 function renderMessage({ from, originalText, translatedText, timestamp, lang }) {
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
@@ -268,17 +256,16 @@ function renderMessage({ from, originalText, translatedText, timestamp, lang }) 
     lastSender = from;
   }
 
-  const messageBubble = document.createElement("div");
-  messageBubble.className = "message-bubble";
-  messageBubble.textContent = showOriginal ? originalText : translatedText;
-
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+  bubble.textContent = showOriginal ? originalText : translatedText;
   const groups = chatWindow.querySelectorAll(`.message-group.${side}`);
   const lastGroup = groups[groups.length - 1];
-  if (lastGroup) lastGroup.appendChild(messageBubble);
-
+  if (lastGroup) lastGroup.appendChild(bubble);
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
+// 🔔 Mensaje de sistema
 function showSystemMessage(text) {
   const msg = document.createElement("div");
   msg.className = "system-message";
@@ -288,20 +275,20 @@ function showSystemMessage(text) {
 }
 
 function formatTime(timestamp) {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const d = new Date(timestamp);
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+// 🌍 Traducción
 async function translateText(text, targetLang) {
   const encoded = encodeURIComponent(text);
   const url = `https://magicloops.dev/api/loop/1f32ffbd-1eb5-4e1c-ab57-f0a322e5a1c3/run?text=${encoded}&targetLanguage=${targetLang}`;
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
+    const res = await fetch(url);
+    const data = await res.json();
     return data.translatedText || "[Sin traducción]";
-  } catch (error) {
-    console.error("Error de traducción:", error);
+  } catch (err) {
+    console.error("Error de traducción:", err);
     return "[Error de traducción]";
   }
 }
@@ -311,7 +298,7 @@ function resetInput() {
   micBtn.textContent = "🎤";
 }
 
-// 🎨 ANIMACIÓN DEL TÍTULO
+// 🎨 Animación del título
 const h1 = document.getElementById("titulo-wave");
 const text = h1.textContent;
 h1.textContent = "";
@@ -325,19 +312,37 @@ h1.textContent = "";
   h1.appendChild(span);
 });
 
+// 🛡 Service Worker
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register("service-worker.js")
-    .then(() => console.log("✅ Service worker registrado"))
-    .catch((err) => console.error("❌ Error al registrar service worker:", err));
+  navigator.serviceWorker.register("service-worker.js").then(() =>
+    console.log("✅ Service worker registrado")
+  );
 }
 
+// 🔐 Versión admin auto-login
+document.getElementById("admin-access").addEventListener("click", () => {
+  const code = prompt("Introduce el código secreto de administrador:");
+  if (code === "1234-ADMIN-SECRETO") {
+    sessionStorage.setItem("admin-secret", code);
+    window.open("admin.html", "_blank");
+  } else if (code) {
+    alert("Código incorrecto");
+  }
+});
 
-      document.getElementById("admin-access").addEventListener("click", () => {
-        const code = prompt("Introduce el código secreto de administrador:");
-        if (code === "1234-ADMIN-SECRETO") {
-          window.open("admin.html", "_blank");
-        } else if (code) {
-          alert("Código incorrecto");
-        }
-      });
+// 🚀 Auto-login desde el panel admin
+const autolog = sessionStorage.getItem("admin-autologin");
+if (autolog) {
+  try {
+    const { username, roomCode, password, lang } = JSON.parse(autolog);
+    usernameInput.value = username;
+    roomInput.value = roomCode;
+    roomPasswordInput.value = password;
+    langSelect.value = lang;
+    sessionStorage.removeItem("admin-autologin");
+    sessionStorage.setItem("admin-secret", "1234-ADMIN-SECRETO");
+    setTimeout(() => entrarAlChat(), 100);
+  } catch (err) {
+    console.error("❌ Auto-login error:", err);
+  }
+}
