@@ -4,13 +4,13 @@ if (sessionStorage.getItem("isAdmin") !== "true") {
   location.href = "index.html";
 }
 
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getDatabase,
   ref,
   onValue,
-  remove
+  remove,
+  push
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -104,6 +104,7 @@ function crearTarjeta(salaId) {
   contenedor.appendChild(div);
 }
 
+// Mostrar salas activas
 onValue(ref(db, "rooms"), (snapshot) => {
   contenedor.innerHTML = "";
   const data = snapshot.val();
@@ -113,4 +114,56 @@ onValue(ref(db, "rooms"), (snapshot) => {
   }
 
   Object.keys(data).forEach((salaId) => crearTarjeta(salaId));
+});
+
+// ✅ Formulario de mensaje global
+const msgContainer = document.createElement("div");
+msgContainer.style.margin = "2rem 1rem";
+msgContainer.innerHTML = `
+  <h3>✉️ Enviar mensaje global</h3>
+  <select id="sala-select" style="margin-bottom: 0.5rem; padding: 0.5rem;"></select>
+  <textarea id="mensaje-global" rows="3" placeholder="Escribe el mensaje..." style="width: 100%; padding: 0.5rem;"></textarea>
+  <button id="enviar-global" style="margin-top: 0.5rem;">Enviar mensaje</button>
+`;
+document.body.appendChild(msgContainer);
+
+const salaSelect = document.getElementById("sala-select");
+const mensajeInput = document.getElementById("mensaje-global");
+const enviarBtn = document.getElementById("enviar-global");
+
+// Rellenar select de salas
+onValue(ref(db, "rooms"), (snapshot) => {
+  salaSelect.innerHTML = `<option value="ALL">🌐 Todas las salas</option>`;
+  snapshot.forEach((sala) => {
+    const option = document.createElement("option");
+    option.value = sala.key;
+    option.textContent = sala.key;
+    salaSelect.appendChild(option);
+  });
+});
+
+enviarBtn.addEventListener("click", async () => {
+  const texto = mensajeInput.value.trim();
+  const destino = salaSelect.value;
+  if (!texto) return alert("Escribe un mensaje primero.");
+
+  const mensaje = {
+    from: "ADMIN",
+    originalText: texto,
+    translatedText: texto,
+    timestamp: Date.now(),
+    lang: "es"
+  };
+
+  if (destino === "ALL") {
+    const snap = await onValue(ref(db, "rooms"), () => {});
+    Object.keys(snap.val() || {}).forEach((salaId) => {
+      push(ref(db, `rooms/${salaId}`), mensaje);
+    });
+  } else {
+    push(ref(db, `rooms/${destino}`), mensaje);
+  }
+
+  mensajeInput.value = "";
+  alert("Mensaje enviado.");
 });
