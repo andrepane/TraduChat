@@ -9,77 +9,41 @@ import {
   set,
   remove,
   off,
-  get
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+// 🔐 Tus credenciales
 const firebaseConfig = {
   apiKey: "AIzaSyDcQfDtysQmIBSW75_KWy5qyXLKQ6X41LU",
   authDomain: "traduchat-47658.firebaseapp.com",
-  databaseURL: "https://traduchat-47658-default-rtdb.europe-west1.firebasedatabase.app",
+  databaseURL:
+    "https://traduchat-47658-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "traduchat-47658",
   storageBucket: "traduchat-47658.firebasestorage.app",
   messagingSenderId: "77137797935",
   appId: "1:77137797935:web:caa5bf672bcd90448c77da",
-  measurementId: "G-XXC1WTYBRP"
+  measurementId: "G-XXC1WTYBRP",
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const usedCodes = new Set();
+const typingRef = ref(db, "typing");
+const typingTimeouts = {};
+let translateOwnLang = false;
 
-async function cargarCódigosUsados() {
-  const snapshot = await get(ref(db, "rooms"));
-  if (snapshot.exists()) {
-    Object.keys(snapshot.val()).forEach((code) => usedCodes.add(code));
-  }
-}
-
-function getRandomLetter() {
-  const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  return letters[Math.floor(Math.random() * letters.length)];
-}
-
-function getRandomDigit() {
-  return Math.floor(Math.random() * 10).toString();
-}
-
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-function generateUniqueCode() {
-  let code;
-  do {
-    const parts = [getRandomLetter(), getRandomLetter(), getRandomDigit()];
-    code = shuffle(parts).join("");
-  } while (usedCodes.has(code));
-  usedCodes.add(code);
-  return code;
-}
-
+// ELEMENTOS
 const usernameInput = document.getElementById("username");
 const langSelect = document.getElementById("language-select");
 const roomInput = document.getElementById("room-code");
 const joinBtn = document.getElementById("join-room");
 const setupSection = document.getElementById("setup");
-const createBtn = document.createElement("button");
-createBtn.id = "create-room";
-createBtn.textContent = "Crear nueva sala";
-createBtn.className = "secondary-button";
-setupSection.insertBefore(createBtn, joinBtn);
-
-createBtn.addEventListener("click", async () => {
-  await cargarCódigosUsados();
-  const newCode = generateUniqueCode();
-  roomInput.value = newCode;
-  alert(`Código generado: ${newCode}. Ahora pulsa 'Entrar al chat' para comenzar.`);
-});
-
+const chatSection = document.getElementById("chat-section");
+const chatWindow = document.getElementById("chat-window");
+const chatForm = document.getElementById("chat-form");
+const chatInput = document.getElementById("chat-input");
+const clearBtn = document.getElementById("clear-chat");
+const leaveBtn = document.getElementById("leave-chat");
+const micBtn = document.getElementById("mic-btn");
 
 const adminName = "Andrea";
 
