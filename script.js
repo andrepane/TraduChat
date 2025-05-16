@@ -27,6 +27,9 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+const typingRef = ref(db, "typing"); // para todos los estados de escritura
+const typingTimeouts = {};
+
 // ELEMENTOS
 const usernameInput = document.getElementById("username");
 const langSelect = document.getElementById("language-select");
@@ -51,6 +54,16 @@ let lastSender = null;
 let userId = null;
 let previousUsers = [];
 
+chatInput.addEventListener("input", () => {
+  if (!roomRef || !userName) return;
+  const userTypingRef = ref(db, `typing/${roomInput.value}/${userName}`);
+  set(userTypingRef, true);
+  if (typingTimeouts[userName]) clearTimeout(typingTimeouts[userName]);
+  typingTimeouts[userName] = setTimeout(() => {
+    set(userTypingRef, false);
+  }, 3000);
+});
+
 joinBtn.addEventListener("click", async () => {
   const roomCode = roomInput.value.trim();
   userName = usernameInput.value.trim();
@@ -63,20 +76,17 @@ joinBtn.addEventListener("click", async () => {
   }
 
   roomRef = ref(db, "rooms/" + roomCode);
-  off(roomRef); // 🧹 Limpia cualquier listener previo
+  off(roomRef);
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
 
-  if (userName === adminName) {
-    clearBtn.style.display = "inline-block";
-  }
+  if (userName === adminName) clearBtn.style.display = "inline-block";
 
   onChildAdded(roomRef, (snapshot) => {
     const message = snapshot.val();
     renderMessage(message);
   });
 
-  // Presencia
   userId = `${userName}-${Math.random().toString(36).slice(2, 6)}`;
   const presenceRef = ref(db, `presence/${roomCode}/${userId}`);
   await push(presenceRef, { name: userName });
@@ -85,66 +95,69 @@ joinBtn.addEventListener("click", async () => {
   const presenceRoomRef = ref(db, `presence/${roomCode}`);
   onValue(presenceRoomRef, (snapshot) => {
     const currentUsers = [];
-
     snapshot.forEach((child) => {
       const val = Object.values(child.val())[0];
       if (val?.name) currentUsers.push(val.name);
     });
-
     currentUsers.forEach((name) => {
-      if (!previousUsers.includes(name) && name !== userName) {
-        showSystemMessage(`${name} se ha conectado`);
-      }
+      if (!previousUsers.includes(name) && name !== userName) showSystemMessage(`${name} se ha conectado`);
     });
-
     previousUsers.forEach((name) => {
-      if (!currentUsers.includes(name) && name !== userName) {
-        showSystemMessage(`${name} se ha desconectado`);
-      }
+      if (!currentUsers.includes(name) && name !== userName) showSystemMessage(`${name} se ha desconectado`);
     });
-
     previousUsers = currentUsers;
+  });
+
+  const typingRoomRef = ref(db, `typing/${roomCode}`);
+  onValue(typingRoomRef, (snapshot) => {
+    const data = snapshot.val();
+    const typingUsers = Object.keys(data || {}).filter(name => data[name] && name !== userName);
+    const existing = document.getElementById("typing-indicator");
+    if (typingUsers.length > 0) {
+      const msg = `${typingUsers.join(", ")} está escribiendo...`;
+      if (existing) existing.textContent = msg;
+      else {
+        const el = document.createElement("div");
+        el.id = "typing-indicator";
+        el.className = "system-message";
+        el.textContent = msg;
+        chatWindow.appendChild(el);
+      }
+    } else if (existing) existing.remove();
+    chatWindow.scrollTop = chatWindow.scrollHeight;
   });
 });
 
-// ENVIAR MENSAJE MANUAL
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const text = chatInput.value.trim();
   if (!text || !roomRef) return;
-
   const translatedText = await translateText(text, targetLang);
   const timestamp = Date.now();
-
   push(roomRef, {
     from: userName,
     originalText: text,
     translatedText,
     timestamp,
   });
-
   resetInput();
 });
 
-// BORRAR CHAT (solo admin)
 clearBtn.addEventListener("click", () => {
   if (!roomRef) return;
-  const confirmDelete = confirm("¿Seguro que quieres borrar todo el chat?");
-  if (!confirmDelete) return;
-
+  if (!confirm("¿Seguro que quieres borrar todo el chat?")) return;
   set(roomRef, null);
   chatWindow.innerHTML = "";
   showSystemMessage(`💥 ${userName} ha borrado el chat`);
 });
 
-// SALIR DEL CHAT
 leaveBtn.addEventListener("click", async () => {
   const roomCode = roomInput.value.trim();
   if (roomCode && userId) {
     const presenceRef = ref(db, `presence/${roomCode}/${userId}`);
     await remove(presenceRef);
   }
-
+  await set(ref(db, `typing/${roomInput.value}/${userName}`), false);
   chatWindow.innerHTML = "";
   chatInput.value = "";
   setupSection.classList.remove("hidden");
@@ -156,7 +169,6 @@ leaveBtn.addEventListener("click", async () => {
   previousUsers = [];
 });
 
-// MICRÓFONO — VOZ A TEXTO Y TRADUCCIÓN
 let isRecording = false;
 let finalTranscript = "";
 let recognition = null;
@@ -172,16 +184,14 @@ micBtn.addEventListener("click", () => {
     return;
   }
 
-  // Si ya está grabando, detenemos la grabación
   if (isRecording && recognition) {
     recognition.stop();
     return;
   }
 
-  // Creamos una nueva instancia cada vez que empieza
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
-  recognition.lang = userLang === "es" ? "es-ES" : "it-IT"; // 👈 Aquí se actualiza correctamente
+  recognition.lang = userLang === "es" ? "es-ES" : "it-IT";
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
@@ -193,11 +203,8 @@ micBtn.addEventListener("click", () => {
     let interimTranscript = "";
     for (let i = event.resultIndex; i < event.results.length; ++i) {
       const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalTranscript += transcript;
-      } else {
-        interimTranscript += transcript;
-      }
+      if (event.results[i].isFinal) finalTranscript += transcript;
+      else interimTranscript += transcript;
     }
     chatInput.value = finalTranscript + interimTranscript;
   };
@@ -223,33 +230,24 @@ micBtn.addEventListener("click", () => {
   recognition.start();
 });
 
-
-
-// AGRUPAR MENSAJES
 function renderMessage({ from, originalText, translatedText, timestamp }) {
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
-
   if (lastSender !== from) {
     const meta = document.createElement("div");
     meta.className = `message-group ${side}`;
-
     const nameLine = document.createElement("div");
     nameLine.className = "message-meta";
     nameLine.textContent = `${from} — ${formatTime(timestamp)}`;
-
     meta.appendChild(nameLine);
     chatWindow.appendChild(meta);
   }
-
   const messageBubble = document.createElement("div");
   messageBubble.className = "message-bubble";
   messageBubble.textContent = translatedText;
-
   const groups = chatWindow.querySelectorAll(`.message-group.${side}`);
   const lastGroup = groups[groups.length - 1];
   lastGroup.appendChild(messageBubble);
-
   chatWindow.scrollTop = chatWindow.scrollHeight;
   lastSender = from;
 }
@@ -270,7 +268,6 @@ function formatTime(timestamp) {
 async function translateText(text, targetLang) {
   const encodedText = encodeURIComponent(text);
   const url = `https://magicloops.dev/api/loop/1f32ffbd-1eb5-4e1c-ab57-f0a322e5a1c3/run?text=${encodedText}&targetLanguage=${targetLang}`;
-
   try {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -282,17 +279,14 @@ async function translateText(text, targetLang) {
   }
 }
 
-// LIMPIAR INPUT
 function resetInput() {
   chatInput.value = "";
   micBtn.textContent = "🎤";
 }
 
-// ANIMACIÓN DEL TÍTULO
 const h1 = document.getElementById("titulo-wave");
 const text = h1.textContent;
 h1.textContent = "";
-
 [...text].forEach((char, i) => {
   const span = document.createElement("span");
   span.textContent = char;
