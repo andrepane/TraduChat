@@ -8,6 +8,19 @@
   </head>
   <body>
     <h1>🔐 Panel de administración</h1>
+    <div id="mensaje-global">
+  <h2>📢 Enviar mensaje global o a sala específica</h2>
+  <label for="sala-select">Selecciona sala:</label>
+  <select id="sala-select">
+    <option value="ALL">🌐 Todas las salas</option>
+  </select>
+
+  <label for="mensaje-admin">Mensaje:</label>
+  <input type="text" id="mensaje-admin" placeholder="Mensaje del admin" />
+
+  <button id="enviar-mensaje-admin">Enviar mensaje</button>
+</div>
+
     <div id="sala-lista"></div>
     <script type="module" src="admin.js"></script>
   </body>
