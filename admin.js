@@ -3,8 +3,7 @@ import {
   getDatabase,
   ref,
   onValue,
-  remove,
-  set
+  remove
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -20,7 +19,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
 const contenedor = document.getElementById("sala-lista");
 
 function extraerNombreSala(salaId) {
@@ -29,7 +27,6 @@ function extraerNombreSala(salaId) {
 
 function crearTarjeta(salaId) {
   const nombreSala = extraerNombreSala(salaId);
-
   const div = document.createElement("div");
   div.className = "sala-card";
 
@@ -37,7 +34,21 @@ function crearTarjeta(salaId) {
   titulo.textContent = `🟢 Sala: ${nombreSala}`;
   div.appendChild(titulo);
 
-  // Botón entrar
+  const contador = document.createElement("p");
+  contador.style.fontSize = "0.9rem";
+  contador.style.marginTop = "0.2rem";
+  div.appendChild(contador);
+
+  const salaPresenceRef = ref(db, `presence/${salaId}`);
+  onValue(salaPresenceRef, (snap) => {
+    const users = [];
+    snap.forEach((child) => {
+      const user = Object.values(child.val())[0];
+      if (user?.name) users.push(user.name);
+    });
+    contador.textContent = `👥 Conectados: ${users.length} — ${users.join(", ") || "Ninguno"}`;
+  });
+
   const btnEntrar = document.createElement("button");
   btnEntrar.textContent = "Entrar como admin";
   btnEntrar.addEventListener("click", () => {
@@ -61,7 +72,6 @@ function crearTarjeta(salaId) {
   });
   div.appendChild(btnEntrar);
 
-  // Botón borrar mensajes
   const btnBorrar = document.createElement("button");
   btnBorrar.textContent = "🗑 Borrar mensajes";
   btnBorrar.className = "danger";
@@ -72,7 +82,6 @@ function crearTarjeta(salaId) {
   });
   div.appendChild(btnBorrar);
 
-  // Botón cerrar sala
   const btnCerrar = document.createElement("button");
   btnCerrar.textContent = "🚪 Cerrar sala";
   btnCerrar.className = "danger";
@@ -88,7 +97,6 @@ function crearTarjeta(salaId) {
   contenedor.appendChild(div);
 }
 
-// Escuchar salas activas
 onValue(ref(db, "rooms"), (snapshot) => {
   contenedor.innerHTML = "";
   const data = snapshot.val();
@@ -97,6 +105,5 @@ onValue(ref(db, "rooms"), (snapshot) => {
     return;
   }
 
-  Object.keys(data).forEach(salaId => crearTarjeta(salaId));
+  Object.keys(data).forEach((salaId) => crearTarjeta(salaId));
 });
-
