@@ -25,7 +25,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const typingTimeouts = {};
-let translateOwnLang = false;
+let translateOwnLang = true;
 let userName = null;
 let userLang = null;
 let targetLang = null;
@@ -38,6 +38,8 @@ const usernameInput = document.getElementById("username");
 const langSelect = document.getElementById("language-select");
 const roomInput = document.getElementById("room-code");
 const roomPasswordInput = document.getElementById("room-password");
+const translateCheckbox = document.getElementById("translate-own-lang");
+translateCheckbox.checked = true;
 
 const joinBtn = document.getElementById("join-room");
 const setupSection = document.getElementById("setup");
@@ -63,7 +65,7 @@ async function entrarAlChat() {
   userName = usernameInput.value.trim();
   userLang = langSelect.value;
   targetLang = userLang === "es" ? "it" : "es";
-  translateOwnLang = document.getElementById("translate-own-lang").checked;
+  translateOwnLang = translateCheckbox.checked;
 
   if (!roomCode || !userLang || !userName || !password) {
     alert("Por favor, rellena todos los campos.");
@@ -230,13 +232,13 @@ micBtn.addEventListener("click", () => {
 
 function renderMessage({ from, originalText, translatedText, timestamp, lang }) {
   if (lang === "admin" && from === "ADMIN") {
-  const global = document.createElement("div");
-  global.className = "mensaje-global";
-  global.textContent = `[ADMIN] ${translatedText}`;
-  chatWindow.appendChild(global);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
-  return;
-}
+    const global = document.createElement("div");
+    global.className = "mensaje-global";
+    global.textContent = `[ADMIN] ${translatedText}`;
+    chatWindow.appendChild(global);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+    return;
+  }
 
   const isCurrentUser = from === userName;
   const side = isCurrentUser ? "right" : "left";
@@ -326,7 +328,7 @@ document.getElementById("admin-access").addEventListener("click", async () => {
 
   if (inputHash === adminHash) {
     sessionStorage.setItem("isAdmin", "true");
-    window.open("admin.html", "_blank");
+    window.open("admin.html", "_blank", "noopener,noreferrer");
   } else {
     alert("Código incorrecto");
   }
