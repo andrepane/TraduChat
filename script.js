@@ -322,7 +322,7 @@ if ("serviceWorker" in navigator) {
 // 🔐 Versión admin auto-login
 document.getElementById("admin-access").addEventListener("click", () => {
   const code = prompt("Introduce el código secreto de administrador:");
-  if (code === "1234-ADMIN-SECRETO") {
+  if (code === "Rachele11") {
     sessionStorage.setItem("admin-secret", code);
     window.open("admin.html", "_blank");
   } else if (code) {
