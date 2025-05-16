@@ -256,3 +256,22 @@ h1 {
 #mic-btn:hover {
     background-color: #e0e0e0;
 }
+
+.translate-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.95rem;
+  color: #333;
+  background: #f4f4f4;
+  padding: 0.5em 0.8em;
+  border-radius: 8px;
+  margin-top: 1em;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.translate-label input[type="checkbox"] {
+  transform: scale(1.2);
+  accent-color: #00b451;
+}
+
