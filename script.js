@@ -335,3 +335,13 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service worker registrado"))
     .catch((err) => console.error("❌ Error al registrar service worker:", err));
 }
+
+
+      document.getElementById("admin-access").addEventListener("click", () => {
+        const code = prompt("Introduce el código secreto de administrador:");
+        if (code === "1234-ADMIN-SECRETO") {
+          window.open("admin.html", "_blank");
+        } else if (code) {
+          alert("Código incorrecto");
+        }
+      });
