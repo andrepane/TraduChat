@@ -9,6 +9,7 @@ import {
   set,
   remove,
   off,
+  get // ✅ IMPORTACIÓN NECESARIA
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // 🔐 Tus credenciales
@@ -36,6 +37,7 @@ const usernameInput = document.getElementById("username");
 const langSelect = document.getElementById("language-select");
 const roomInput = document.getElementById("room-code");
 const joinBtn = document.getElementById("join-room");
+const roomPasswordInput = document.getElementById("room-password");
 const setupSection = document.getElementById("setup");
 const chatSection = document.getElementById("chat-section");
 const chatWindow = document.getElementById("chat-window");
@@ -65,37 +67,33 @@ chatInput.addEventListener("input", () => {
   }, 3000);
 });
 
-const roomPasswordInput = document.getElementById("room-password");
-
 joinBtn.addEventListener("click", async () => {
   const roomCode = roomInput.value.trim();
+  const password = roomPasswordInput.value.trim();
   userName = usernameInput.value.trim();
   userLang = langSelect.value;
   targetLang = userLang === "es" ? "it" : "es";
 
   translateOwnLang = document.getElementById("translate-own-lang").checked;
 
-  if (!roomCode || !userLang || !userName) {
+  if (!roomCode || !userLang || !userName || !password) {
     alert("Por favor, rellena todos los campos.");
     return;
   }
 
- roomRef = ref(db, "rooms/" + roomCode);
+  roomRef = ref(db, "rooms/" + roomCode);
+  const passwordRef = ref(db, `roomPasswords/${roomCode}`);
+  const passwordSnapshot = await get(passwordRef);
 
-const password = roomPasswordInput.value.trim();
-const passwordRef = ref(db, `roomPasswords/${roomCode}`);
-const passwordSnapshot = await get(passwordRef);
-
-if (passwordSnapshot.exists()) {
-  const correctPassword = passwordSnapshot.val();
-  if (password !== correctPassword) {
-    alert("Contraseña incorrecta.");
-    return;
+  if (passwordSnapshot.exists()) {
+    const correctPassword = passwordSnapshot.val();
+    if (password !== correctPassword) {
+      alert("Contraseña incorrecta.");
+      return;
+    }
+  } else {
+    await set(passwordRef, password);
   }
-} else {
-  // Si no existe, el usuario que entra es el primero => se guarda como contraseña de la sala
-  await set(passwordRef, password);
-}
 
   off(roomRef);
   setupSection.classList.add("hidden");
