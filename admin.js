@@ -1,3 +1,10 @@
+// 🔐 Verifica que tenga acceso como admin
+if (sessionStorage.getItem("isAdmin") !== "true") {
+  alert("Acceso denegado");
+  location.href = "index.html";
+}
+
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getDatabase,
