@@ -1,102 +1,94 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TraduChat</title>
-
-  <!-- Tipografía -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
-
-  <!-- Estilos y manifest -->
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#00b451" />
-  <link rel="icon" href="icons/icon-192.png" />
-</head>
-<body>
-  <!-- 🔧 SETUP DEL CHAT -->
-  <header id="setup">
-    <h1 id="titulo-wave">TraduChat</h1>
-
-    <!-- Nombre del usuario -->
-    <label for="username">Tu nombre / Il tuo nome:</label>
-    <input
-      type="text"
-      id="username"
-      placeholder="Ej: Mamá española / Mamma italiana"
-      autocomplete="name"
-      required
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TraduChat</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
     />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#00b451" />
+    <link rel="icon" href="icons/icon-192.png" />
+  </head>
+  <body>
+    <header id="setup">
+      <h1 id="titulo-wave">TraduChat</h1>
 
-    <!-- Código secreto del admin -->
-    <label for="admin-secret" style="margin-top: 0.5rem;">Código admin (opcional) / Codice admin (facoltativo):</label>
-    <input
-      type="password"
-      id="admin-secret"
-      placeholder= "-"
-      autocomplete="off"
-    />
-
-    <!-- Idioma -->
-    <label for="language-select">¿En qué idioma vas a escribir? / In quale lingua vuoi scrivere?</label>
-    <select id="language-select" required>
-      <option value="es">Español</option>
-      <option value="it">Italiano</option>
-    </select>
-
-    <!-- Checkbox de traducción -->
-    <label class="translate-label" for="translate-own-lang">
-      <input type="checkbox" id="translate-own-lang" />
-      <span>Ver mensajes traducidos / Vedi messaggi tradotti</span>
-    </label>
-
-    <!-- Código y contraseña -->
-    <label for="room-code">Código de sala / Codice stanza:</label>
-    <input
-      type="text"
-      id="room-code"
-      placeholder="Ej: familia2025 / famiglia2025"
-      required
-    />
-
-    <label for="room-password">Contraseña de sala / Password stanza:</label>
-    <input
-      type="password"
-      id="room-password"
-      placeholder="Introduce la contraseña"
-      autocomplete="new-password"
-      required
-    />
-
-    <!-- Botón de entrada -->
-    <button id="join-room">Entrar al chat / Entra nella chat</button>
-  </header>
-
-  <!-- 💬 SECCIÓN DE CHAT -->
-  <main id="chat-section" class="hidden">
-    <button id="clear-chat" aria-label="Borrar todo el chat">🗑 Borrar chat</button>
-    <button id="leave-chat" aria-label="Salir del chat">Salir / Uscire</button>
-
-    <div id="chat-window" aria-live="polite"></div>
-    <div id="user-list" class="user-list" aria-hidden="true"></div>
-
-    <!-- Formulario de mensaje -->
-    <form id="chat-form" autocomplete="off">
-      <button type="button" id="mic-btn" title="Hablar con el micrófono">🎤</button>
+      <label for="username">Tu nombre / Il tuo nome:</label>
       <input
         type="text"
-        id="chat-input"
-        placeholder="Escribe un mensaje... / Scrivi un messaggio..."
-        aria-label="Campo de texto para escribir el mensaje"
-        required
+        id="username"
+        placeholder="Ej: Mamá española / Mamma italiana"
       />
-      <button type="submit">Enviar / Invia</button>
-    </form>
-  </main>
 
-  <script type="module" src="script.js"></script>
-</body>
+      <label for="language-select">
+        ¿En qué idioma vas a escribir? / In quale lingua vuoi scrivere?
+      </label>
+      <select id="language-select">
+        <option value="es">Español</option>
+        <option value="it">Italiano</option>
+      </select>
+
+      <label class="translate-label">
+        <input type="checkbox" id="translate-own-lang" />
+        <span>Ver mensajes traducidos / Vedi messaggi tradotti</span>
+      </label>
+
+      <label for="room-code">Código de sala / Codice stanza:</label>
+      <input
+        type="text"
+        id="room-code"
+        placeholder="Ej: familia2025 / famiglia2025"
+      />
+
+      <label for="room-password">Contraseña de sala / Password stanza:</label>
+      <input
+        type="password"
+        id="room-password"
+        placeholder="Introduce la contraseña"
+      />
+
+      <button id="join-room">Entrar al chat / Entra nella chat</button>
+    </header>
+
+    <main id="chat-section" class="hidden">
+      <button id="clear-chat">🗑 Borrar chat</button>
+      <button id="leave-chat">Salir / Uscire</button>
+      <div id="chat-window"></div>
+      <div id="user-list" class="user-list"></div>
+      <form id="chat-form">
+        <button type="button" id="mic-btn" title="Hablar con el micrófono">🎤</button>
+        <input
+          type="text"
+          id="chat-input"
+          placeholder="Escribe un mensaje... / Scrivi un messaggio..."
+          autocomplete="off"
+        />
+        <button type="submit">Enviar / Invia</button>
+      </form>
+    </main>
+
+    <!-- 🔐 BOTÓN DE ACCESO ADMIN -->
+    <button id="admin-access"
+      style="position: fixed; bottom: 1rem; right: 1rem; z-index: 999;">
+      Versión admin
+    </button>
+
+    <script type="module" src="script.js"></script>
+    <script>
+      document.getElementById("admin-access").addEventListener("click", () => {
+        const code = prompt("Introduce el código secreto de administrador:");
+        if (code === "1234-ADMIN-SECRETO") {
+          window.open("admin.html", "_blank");
+        } else if (code) {
+          alert("Código incorrecto");
+        }
+      });
+    </script>
+  </body>
 </html>
