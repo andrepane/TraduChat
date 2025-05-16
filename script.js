@@ -32,8 +32,6 @@ const usernameInput = document.getElementById("username");
 const langSelect = document.getElementById("language-select");
 const roomInput = document.getElementById("room-code");
 const roomPasswordInput = document.getElementById("room-password");
-const adminSecretInput = document.getElementById("admin-secret");
-
 const joinBtn = document.getElementById("join-room");
 const setupSection = document.getElementById("setup");
 const chatSection = document.getElementById("chat-section");
@@ -74,7 +72,6 @@ chatInput.addEventListener("input", () => {
 joinBtn.addEventListener("click", async () => {
   const roomCode = roomInput.value.trim();
   const password = roomPasswordInput.value.trim();
-  const secretCode = adminSecretInput.value.trim();
 
   userName = usernameInput.value.trim();
   userLang = langSelect.value;
@@ -93,9 +90,8 @@ joinBtn.addEventListener("click", async () => {
 
   setupSection.classList.add("hidden");
   chatSection.classList.remove("hidden");
+clearBtn.style.display = "none";
 
-  const esAdmin = secretCode === "1234-ADMIN-SECRETO";
-  clearBtn.style.display = esAdmin ? "inline-block" : "none";
 
   // ✅ Carga historial completo al entrar
   onValue(roomRef, (snapshot) => {
